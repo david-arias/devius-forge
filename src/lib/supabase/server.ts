@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { MISSING_SUPABASE_ENV_MESSAGE, readSupabaseEnv } from "./env";
 
 /**
  * Cliente de Supabase para SERVER (Eleuthia/Éter, Iteración 14 — "La Forja
@@ -27,14 +28,10 @@ import { cookies } from "next/headers";
 export async function createServerSupabaseClient() {
   const cookieStore = await cookies();
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const { url, anonKey } = readSupabaseEnv();
 
   if (!url || !anonKey) {
-    throw new Error(
-      "Supabase no está configurado todavía: faltan NEXT_PUBLIC_SUPABASE_URL / " +
-        "NEXT_PUBLIC_SUPABASE_ANON_KEY en .env.local. Ver src/lib/supabase/SETUP.md."
-    );
+    throw new Error(`${MISSING_SUPABASE_ENV_MESSAGE} Ver src/lib/supabase/SETUP.md.`);
   }
 
   return createServerClient(url, anonKey, {

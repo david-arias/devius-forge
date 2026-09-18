@@ -5,6 +5,8 @@ import { draftMode } from "next/headers";
 import { SiteChrome } from "@/components/hefesto/sections";
 import { getNavigationForView } from "@/lib/minerva";
 import { SITE_URL } from "@/lib/site";
+import { SupabaseRuntimeConfig } from "@/components/eter/SupabaseRuntimeConfig";
+import { readSupabaseEnv } from "@/lib/supabase/env";
 import { Telemetry } from "@/components/poseidon/Telemetry";
 
 /** Poseidón, Iteración 24: la telemetría de Vercel sólo existe en builds de producción. */
@@ -90,6 +92,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   // la vuelve a leer ella misma, es un Server Component independiente) y
   // a `SiteChrome` → `Navbar` (para el offset `top-9`, ver su docblock).
   const { isEnabled: previewActive } = await draftMode();
+  // Iteración 28: las credenciales de Supabase viajan al navegador acá
+  // (payload del servidor) en vez de incrustarse en el bundle vía
+  // `NEXT_PUBLIC_*` — ver `components/eter/SupabaseRuntimeConfig.tsx`.
+  const supabaseEnv = readSupabaseEnv();
 
   // JSON-LD Person/ProfilePage (Apolo, auditoría 2026-09-15) — apunta a las
   // mismas redes reales que ya sirve `getNavigationForView` (Deméter/Minerva),
@@ -129,6 +135,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${cinzel.variable} ${inter.variable} h-full scroll-smooth antialiased`}
     >
       <body className="min-h-full flex flex-col bg-obsidian text-parchment font-sans">
+        <SupabaseRuntimeConfig url={supabaseEnv.url} anonKey={supabaseEnv.anonKey} />
         {/* Atmósfera de la Forja — fondo + grano, dominio de Hefesto (ver globals.css) */}
         <div aria-hidden className="forge-atmosphere" />
         <div aria-hidden className="noise-overlay" />

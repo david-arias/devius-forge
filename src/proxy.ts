@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
+import { readSupabaseEnv } from "@/lib/supabase/env";
 
 /**
  * Proxy de borde — Eleuthia, Iteración 14 → blindado en la Iteración 23.
@@ -52,8 +53,7 @@ export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const isLoginRoute = pathname === LOGIN_PATH;
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const { url, anonKey } = readSupabaseEnv();
 
   if (!url || !anonKey) {
     if (isLoginRoute) return hardenAdminResponse(NextResponse.next({ request }));

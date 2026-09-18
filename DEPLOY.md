@@ -31,14 +31,16 @@ Ir a **Project Settings → Environment Variables** en el dashboard de Vercel y 
 
 | Variable | Requerida | Entornos | Notas |
 |---|---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Sí | Production, Preview, Development | URL del proyecto de Supabase. Segura de exponer al cliente (por eso `NEXT_PUBLIC_`). |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Sí | Production, Preview, Development | `anon key` — segura de exponer porque las tablas tienen RLS habilitado (`001_init.sql`/`002_admin_tables.sql`). **Nunca** cargar una `SUPABASE_SERVICE_ROLE_KEY` — esa key bypassea RLS y el proyecto no la necesita en ningún punto (Auth vía `@supabase/ssr` con cookies alcanza con la `anon key`). |
-| `DRAFT_MODE_SECRET` | Opcional | Production, Preview | Endurece `/api/draft` (Iteración 18) exigiendo `?secret=` antes de activar el Draft Mode. Generar con `openssl rand -hex 32`. Sin esta variable, el endpoint queda abierto — aceptable para este proyecto (sólo expone contenido en borrador, nunca credenciales), pero recomendado en Production. |
-| `NEXT_PUBLIC_DRAFT_MODE_SECRET` | Opcional (requerida SI se define `DRAFT_MODE_SECRET`) | Production, Preview | **Mismo valor exacto** que `DRAFT_MODE_SECRET` — el botón "Ver Preview" del CMS (Client Component) lo necesita para mandarlo como query param. Si se olvida, el botón "Ver Preview" del CMS devuelve 401 apenas se activa `DRAFT_MODE_SECRET`. |
+| `SUPABASE_URL` | Sí | Production, Preview, Development | **Tipo: Secret/privada.** URL del proyecto de Supabase. Sin prefijo desde la Iteración 28. |
+| `SUPABASE_ANON_KEY` | Sí | Production, Preview, Development | **Tipo: Secret/privada.** `anon key` — segura de exponer porque las tablas tienen RLS habilitado (`001_init.sql`/`002_admin_tables.sql`). **Nunca** cargar una `SUPABASE_SERVICE_ROLE_KEY` — esa key bypassea RLS y el proyecto no la necesita en ningún punto (Auth vía `@supabase/ssr` con cookies alcanza con la `anon key`). |
+| `SITE_URL` | Sí | Production, Preview | **Tipo: Secret/privada.** Dominio final sin barra final (`https://devius.dev`). Alimenta `metadataBase`, canonical, Open Graph, JSON-LD, `sitemap.xml` y `robots.txt`. Server-only desde la Iteración 27. |
+| `DRAFT_MODE_SECRET` | Opcional | Production, Preview | **Tipo: Secret.** Segunda llave para abrir `/api/draft?secret=…` SIN sesión de admin (previews desde el celular o para un cliente). El botón "Ver Preview" del CMS no la necesita: `/api/draft` autoriza por sesión. Generar con `openssl rand -hex 32`. |
+
+> **Ninguna variable con prefijo `NEXT_PUBLIC_` (Iteración 28).** La UI nueva de Vercel avisa al guardar variables con ese prefijo (*"Remove the public framework prefix to keep this value private…"*). Ahora TODAS las variables del proyecto se cargan sin prefijo y como **Secret**: el servidor lee `SUPABASE_URL`/`SUPABASE_ANON_KEY` y le pasa esos dos valores al navegador en runtime (`src/components/eter/SupabaseRuntimeConfig.tsx`) en vez de que Next.js los incruste en el bundle. La `anon key` sigue llegando al navegador — es imprescindible para el login del CMS, la subida de imágenes y la telemetría, y es segura mientras las tablas tengan RLS (todas la tienen). Si preferís el camino corto y guardarlas con prefijo, elegí el tipo **Config** y funciona igual: el código acepta los dos nombres.
 
 No hace falta ninguna variable adicional para `next/og` (`opengraph-image.tsx`), Draft Mode en sí (usa cookies, no env vars propias), ni para `src/proxy.ts`.
 
-**Importante — dominio final (Iteración 23):** el dominio vive en `src/lib/site.ts` y se toma de `NEXT_PUBLIC_SITE_URL` (sin barra final). Si no está definida, en Vercel se usa `VERCEL_PROJECT_PRODUCTION_URL` y, como último recurso, `https://devius.dev`. Definila en Production **antes** del primer deploy: alimenta `metadataBase`, canonical, Open Graph, JSON-LD, `sitemap.xml` y `robots.txt`.
+**Importante — dominio final (Iteración 23, renombrada en la 27):** el dominio vive en `src/lib/site.ts` y se toma de `SITE_URL` (sin barra final; se acepta `NEXT_PUBLIC_SITE_URL` como fallback heredado). Si no está definida, en Vercel se usa `VERCEL_PROJECT_PRODUCTION_URL` y, como último recurso, `https://devius.dev`. Definila en Production **antes** del primer deploy: alimenta `metadataBase`, canonical, Open Graph, JSON-LD, `sitemap.xml` y `robots.txt`.
 
 ## 4. Paso a paso del primer deploy
 
@@ -53,7 +55,7 @@ No hace falta ninguna variable adicional para `next/og` (`opengraph-image.tsx`),
 3. Antes de darle a **Deploy**, cargar las variables de entorno de la sección 3 (al menos las dos de Supabase — son obligatorias, el sitio no rompe sin ellas gracias al fallback a `STATIC_*` en Deméter, pero serviría contenido desactualizado en vez de los datos reales del CMS).
 4. **Deploy.** El primer build corre `next build` con Turbopack — mismo comando que se verificó en el paso 1 de esta guía.
 5. Una vez desplegado, confirmar en Supabase (dashboard → Authentication → Users) que existe el usuario admin real (ver "Roto / pendiente de decisión" en `handoff.md` — todavía no existe ninguno) y que las migraciones `001_init.sql` → `004_publish_flags.sql` ya corrieron (SQL Editor de Supabase, en orden) — sin `004_publish_flags.sql`, el checkbox "Publicado" de Quests/Inventario no persiste (cae al default `true` de Zod).
-6. Definir `NEXT_PUBLIC_SITE_URL` con el dominio de producción, y en Supabase → Authentication → URL Configuration agregar el dominio real de Vercel (y cualquier dominio custom) a **Site URL**/**Redirect URLs**, o el login de `/admin/login` puede fallar en Production por un origen no permitido.
+6. Definir `SITE_URL` con el dominio de producción, y en Supabase → Authentication → URL Configuration agregar el dominio real de Vercel (y cualquier dominio custom) a **Site URL**/**Redirect URLs**, o el login de `/admin/login` puede fallar en Production por un origen no permitido.
 
 ## 5. Preview deployments y Draft Mode (Iteración 18)
 
@@ -72,7 +74,7 @@ Estos ítems (copiados de `handoff.md`, sección "Roto / pendiente de decisión"
 ## 7. Checklist final de producción (Iteración 23)
 
 - [ ] SQL corrido en Supabase, en orden: `001` → `002` → `004` → `005` → `006` → `007` → `008` (`003` es histórico).
-- [ ] Variables en Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL` (+ opcionales `DRAFT_MODE_SECRET`/`NEXT_PUBLIC_DRAFT_MODE_SECRET`, `NEXT_PUBLIC_SFX_ENABLED`).
+- [ ] Variables en Vercel, todas como **Secret** y sin prefijo: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SITE_URL` (+ opcional `DRAFT_MODE_SECRET`). `NEXT_PUBLIC_SFX_ENABLED`/`NEXT_PUBLIC_TELEMETRY_DEV` son flags locales: no se cargan en Vercel.
 - [ ] Supabase → Authentication → URL Configuration con el dominio de Vercel.
 - [ ] `/admin/settings` completado (correo, GitHub, LinkedIn) — sin eso el sitio no muestra enlaces de contacto.
 - [ ] Verificar tras el deploy: `/robots.txt`, `/sitemap.xml` (sólo Quests publicadas), `/admin` redirige a `/admin/login` en incógnito, una ruta inexistente muestra el 404 de la Forja.

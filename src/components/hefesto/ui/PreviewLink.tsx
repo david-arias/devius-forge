@@ -26,13 +26,12 @@ interface PreviewLinkProps {
  * `target="_blank"` abre la pestaña nueva mientras el formulario del CMS
  * (con cambios sin guardar) sigue intacto en la pestaña original.
  *
- * `NEXT_PUBLIC_DRAFT_MODE_SECRET` es opcional — sólo se manda si está
- * definido en build time; ver `DRAFT_MODE_SECRET` (server-only) en
- * `app/api/draft/route.ts` y la guía de despliegue de Poseidón.
+ * Iteración 27: ya no viaja ningún secreto al navegador. `/api/draft`
+ * autoriza por la sesión de admin (cookie de Supabase), que este botón
+ * siempre tiene: vive dentro de `/admin/*`. Ver el docblock de
+ * `app/api/draft/route.ts`.
  */
 export function PreviewLink({ slug, className }: PreviewLinkProps) {
-  const publicSecret = process.env.NEXT_PUBLIC_DRAFT_MODE_SECRET;
-
   return (
     <form
       action="/api/draft"
@@ -41,7 +40,6 @@ export function PreviewLink({ slug, className }: PreviewLinkProps) {
       className={cn("inline-flex", className)}
     >
       <input type="hidden" name="slug" value={slug} />
-      {publicSecret && <input type="hidden" name="secret" value={publicSecret} />}
       <button
         type="submit"
         className="inline-flex items-center gap-1.5 rounded-md border border-white/15 px-2.5 py-1 text-xs font-medium text-parchment-muted transition-colors duration-150 hover:border-neon/50 hover:text-neon"

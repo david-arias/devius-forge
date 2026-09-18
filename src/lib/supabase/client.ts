@@ -1,5 +1,6 @@
 import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { MISSING_SUPABASE_ENV_MESSAGE, readSupabaseEnv, type SupabaseEnv } from "./env";
 
 /**
  * Cliente de Supabase (Deméter/Eleuthia/Éter, Iteración 12 — preparación
@@ -34,8 +35,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  *
  * Variables de entorno esperadas en `.env.local` (ver `.env.local.example`
  * en la raíz del proyecto):
- *   NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
- *   NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-public-key>
+ *   SUPABASE_URL=https://<project-ref>.supabase.co
+ *   SUPABASE_ANON_KEY=<anon-public-key>
  *
  * Inicialización perezosa (lazy singleton) a propósito: este archivo puede
  * importarse en build-time (SSG) antes de que `.env.local` exista todavía
@@ -46,18 +47,34 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  */
 let cachedClient: SupabaseClient | null = null;
 
+/**
+ * Config inyectada por `SupabaseRuntimeConfig` (Iteración 28). En el
+ * navegador NO hay `process.env` con estos valores (ya no llevan prefijo
+ * `NEXT_PUBLIC_`): el layout los pasa como props desde el servidor y este
+ * módulo los guarda acá antes de que cualquier handler cree el cliente.
+ */
+let runtimeConfig: SupabaseEnv | null = null;
+
+export function setSupabaseRuntimeConfig(config: SupabaseEnv) {
+  // Sólo la primera vez: el cliente ya cacheado no debe cambiar de proyecto a mitad de sesión.
+  if (!runtimeConfig) runtimeConfig = config;
+}
+
+/** `true` si ya hay credenciales (útil para no intentar llamadas condenadas a fallar). */
+export function hasSupabaseConfig(): boolean {
+  if (runtimeConfig) return true;
+  const env = readSupabaseEnv();
+  return Boolean(env.url && env.anonKey);
+}
+
 export function getSupabaseClient(): SupabaseClient {
   if (cachedClient) return cachedClient;
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  // 1) Config de runtime (navegador) · 2) env del proceso (servidor/build).
+  const { url, anonKey } = runtimeConfig ?? readSupabaseEnv();
 
   if (!url || !anonKey) {
-    throw new Error(
-      "Supabase no está configurado todavía: faltan NEXT_PUBLIC_SUPABASE_URL / " +
-        "NEXT_PUBLIC_SUPABASE_ANON_KEY en .env.local. Mientras tanto, el sitio " +
-        "muestra sus estados vacíos (sin datos de prueba desde la Iteración 19)."
-    );
+    throw new Error(MISSING_SUPABASE_ENV_MESSAGE);
   }
 
   // `createBrowserClient` (no `createClient` de `@supabase/supabase-js`):

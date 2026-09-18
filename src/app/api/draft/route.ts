@@ -1,4 +1,5 @@
 import { draftMode } from "next/headers";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { type NextRequest } from "next/server";
 
@@ -15,14 +16,19 @@ import { type NextRequest } from "next/server";
  *     borradores (`includeDrafts: true`) — ver sus docblocks.
  *   - `PreviewBanner` (Hefesto) se vuelve visible en el sitio público.
  *
- * Seguridad: sigue la guía oficial de Next.js (`draft-mode.md`) — el
- * secreto es OPCIONAL acá a propósito. Si se define `DRAFT_MODE_SECRET`
- * (ver `.env.local.example`/guía de Vercel), este endpoint lo exige y
- * cualquier visitante sin el secreto correcto recibe 401. Sin esa env var
- * configurada, el endpoint queda abierto — aceptable para un portafolio
- * de un solo admin donde lo único que "filtra" el Draft Mode es contenido
- * en borrador, no datos sensibles ni credenciales. `slug` se valida como
- * ruta relativa (empieza con "/") antes de redirigir para evitar un
+ * Seguridad (revisada en la Iteración 27): la puerta principal es la
+ * SESIÓN DE ADMIN (cookie de Supabase). El botón "Ver Preview" del CMS
+ * siempre se usa con sesión iniciada, así que no hace falta ningún
+ * secreto en el navegador — desapareció `NEXT_PUBLIC_DRAFT_MODE_SECRET`,
+ * que además contradecía su propio nombre (un secreto público no es un
+ * secreto, y Vercel ahora lo marca al guardarlo).
+ *
+ * `DRAFT_MODE_SECRET` (server-only, opcional) sigue existiendo como
+ * segunda llave para usos sin sesión — por ejemplo abrir un preview desde
+ * el celular o compartirlo con un cliente: `/api/draft?secret=…&slug=…`.
+ *
+ * Sin sesión y sin secreto válido: 401. `slug` se valida como ruta
+ * relativa (empieza con "/") antes de redirigir para evitar un
  * open-redirect a un dominio externo.
  *
  * Se usa `GET` (no `POST`) siguiendo la guía de Next.js: el botón "Ver
@@ -36,8 +42,27 @@ export async function GET(request: NextRequest) {
   const rawSlug = searchParams.get("slug") ?? "/";
 
   const expectedSecret = process.env.DRAFT_MODE_SECRET;
-  if (expectedSecret && secret !== expectedSecret) {
-    return new Response("Token de preview inválido.", { status: 401 });
+  const secretMatches = Boolean(expectedSecret) && secret === expectedSecret;
+
+  let hasAdminSession = false;
+  if (!secretMatches) {
+    try {
+      const supabase = await createServerSupabaseClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      hasAdminSession = Boolean(user);
+    } catch {
+      // Supabase sin configurar: se cae al chequeo de secreto de abajo.
+      hasAdminSession = false;
+    }
+  }
+
+  if (!secretMatches && !hasAdminSession) {
+    return new Response(
+      "Preview no autorizado: iniciá sesión en /admin/login o usá ?secret=<DRAFT_MODE_SECRET>.",
+      { status: 401 }
+    );
   }
 
   // Sólo rutas relativas propias del sitio — nunca un slug que apunte a otro host.

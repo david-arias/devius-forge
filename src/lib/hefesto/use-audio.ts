@@ -8,8 +8,9 @@ import { useCallback, useRef } from "react";
  * generaba un 404 en la consola de producción. Con `false`, ninguna función
  * de este hook crea un `<audio>` ni hace requests: son no-ops.
  * Para activar: subir los 3 archivos (o generar silencios con
- * `scripts/generate-silent-sfx.sh`) y pasar esto a `true` o definir
- * `NEXT_PUBLIC_SFX_ENABLED=true`.
+ * `scripts/generate-silent-sfx.sh`) y definir `NEXT_PUBLIC_SFX_ENABLED=true`.
+ * Es un flag de build sin valor sensible (por eso lleva prefijo público);
+ * en Vercel, si se usa, va como variable de tipo "Config".
  */
 const SFX_ENABLED = process.env.NEXT_PUBLIC_SFX_ENABLED === "true";
 

@@ -104,7 +104,7 @@ Regla de oro vigente: ningún componente de `hefesto` importa directamente de `d
 - `lucide-react` (esta versión del paquete) ya no incluye íconos de marca (GitHub/LinkedIn); los enlaces sociales usan un ícono genérico (`ExternalLink`) + etiqueta de texto en vez del logo de cada red.
 - `imagePlaceholder` sigue siendo el fallback cuando `quest.media` no está definido — pendiente subir capturas/videos reales de cada proyecto y completar `media`/`testimonial` en `src/lib/demeter/queries/quests.ts` (Fase 2 de la auditoría).
 - `/cv-devius.pdf` referenciado desde el botón "Descargar CV" del Hero **no existe todavía** en `/public` — subir el PDF real o el botón queda roto (404).
-- `SITE_URL` en `layout.tsx` está hardcodeado a `https://devius.dev` — confirmar que sea el dominio final antes de desplegar, o mover a `NEXT_PUBLIC_SITE_URL`.
+- ~~`SITE_URL` hardcodeado~~ — resuelto: vive en `src/lib/site.ts` y se configura con la env `SITE_URL` (Iteración 23/27).
 - `useAudio` (hover "whoosh" / click "clink" / logro "unlock", Iteración 10) está construido pero **no** cableado con sonido real en ningún caso — faltan los 3 assets de audio en `/public/sfx/` y un control de "silenciar sonidos" en la UI antes de que suene nada (falla en silencio mientras tanto, por diseño).
 - No hay control de versiones Git inicializado.
 - No hay tests configurados (Vitest/Playwright no instalados todavía, sólo carpetas creadas).
@@ -259,6 +259,22 @@ Regla de oro vigente: ningún componente de `hefesto` importa directamente de `d
 - **HEFESTO:** `ui/KonamiSecret.tsx` monta el hook y, al completarse: `unlock("ancient-knowledge")` (el store ya dispara el Toast y registra `achievement_unlocked` en `telemetry_events`, Iteración 25 — no hace falta trackear aparte) + lluvia de 46 chispas esmeralda/doradas con destello y halo de borde durante ~4.2s, `aria-hidden` y `pointer-events-none`. Posiciones deterministas (LCG con semilla) para no romper la hidratación. Con `prefers-reduced-motion` no hay lluvia: sólo un halo que se desvanece. Montado en `SiteChrome` → sólo rutas públicas, nunca en `/admin`.
 - Verificado: `tsc`, `eslint` (0 errores), `next build` y Playwright sobre la copia aparte: una secuencia con un error NO dispara nada, la correcta muestra el Toast "Conocimiento Ancestral" + 46 chispas que se limpian solas a los ~4s, y con el foco dentro de un input la secuencia queda bloqueada.
 - **POSEIDÓN:** comandos de Git y lista corta de variables de entorno entregados en el chat (nada ejecutado: el repo sigue sin inicializar, ver paso 1 de la lista de abajo).
+
+**Iteración 27 (Variables de entorno para Vercel — Config vs Secret, 2026-09-18):**
+- Disparador: al guardar variables con prefijo `NEXT_PUBLIC_`, la UI nueva de Vercel avisa *"Remove the public framework prefix to keep this value private… change the variable to Config"*. No es un error de build: Vercel pide declarar el tipo (**Config** = legible luego, para valores públicos; **Secret** = oculto tras guardarlo).
+- **Se mantienen públicas (tipo Config):** `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY`. El navegador las necesita sí o sí (login del CMS, `ImageUploader` a Storage, inserts de `telemetry_events`); lo que protege los datos es RLS, no ocultar la anon key. Renombrarlas rompería el sitio: Next.js sólo inyecta al bundle de cliente lo que lleva el prefijo.
+- **`NEXT_PUBLIC_SITE_URL` → `SITE_URL`:** `src/lib/site.ts` sólo lo consumen `layout.tsx`, `sitemap.ts` y `robots.ts` (todos servidor), así que el prefijo era innecesario. Se lee `SITE_URL ?? NEXT_PUBLIC_SITE_URL` para no romper deploys ya configurados.
+- **`NEXT_PUBLIC_DRAFT_MODE_SECRET` eliminada:** era un secreto viajando al navegador (contradicción que Vercel marca). `app/api/draft/route.ts` ahora autoriza por **sesión de admin** (`supabase.auth.getUser()` con la cookie) y deja `DRAFT_MODE_SECRET` (server-only) como segunda llave para previews sin sesión. `PreviewLink.tsx` ya no manda ningún `?secret=`. Efecto colateral bueno: sin sesión y sin secreto, `/api/draft` ahora responde 401 (antes quedaba abierto si no se definía el secreto).
+- `NEXT_PUBLIC_SFX_ENABLED` / `NEXT_PUBLIC_TELEMETRY_DEV` siguen con prefijo (son flags de build sin valor sensible) pero son de uso local: no hace falta cargarlos en Vercel.
+- Verificado: `tsc`, `eslint` (0 errores) y `next build`. `DEPLOY.md` y `.env.local.example` actualizados con la tabla Config/Secret.
+
+**Iteración 28 (Adiós al prefijo público — credenciales en runtime, 2026-09-18):**
+- Disparador: Vercel rechaza guardar como privadas las variables con prefijo `NEXT_PUBLIC_` ("Remove the public framework prefix to keep this value private"). En la Iteración 27 la salida era elegir el tipo **Config**; el pedido ahora fue que el código no necesite el prefijo en absoluto.
+- **ÉTER — `src/lib/supabase/env.ts`:** `readSupabaseEnv()` resuelve `SUPABASE_URL ?? NEXT_PUBLIC_SUPABASE_URL` y `SUPABASE_ANON_KEY ?? NEXT_PUBLIC_SUPABASE_ANON_KEY` (fallback = deploys/.env.local viejos siguen andando) + mensaje de error único.
+- **ÉTER — `components/eter/SupabaseRuntimeConfig.tsx`:** Client Component que recibe url/anonKey como props desde `RootLayout` (Server Component) y los registra vía `setSupabaseRuntimeConfig()` en `lib/supabase/client.ts`. `getSupabaseClient()` resuelve: config de runtime (navegador) → `readSupabaseEnv()` (servidor/build) → error claro. `server.ts` y `proxy.ts` pasan a `readSupabaseEnv()`.
+- Efecto: Next.js ya NO incrusta la `anon key` en el bundle de cliente (verificado: `grep` sobre `.next/static` no la encuentra); viaja en el payload del servidor. La exposición real no cambia (el navegador la necesita para login/Storage/telemetría y RLS es lo que protege los datos), pero en Vercel todas las variables se cargan sin prefijo y como **Secret**.
+- Verificado: `tsc`, `eslint` (0 errores), `next build` con SÓLO `SUPABASE_URL`/`SUPABASE_ANON_KEY`/`SITE_URL` definidas y prueba con un Supabase simulado: el click en "Descargar CV" generó los `POST /rest/v1/telemetry_events` desde el navegador (prueba de que el cliente recibió la config en runtime) y `/admin/login` respondió sin errores de consola.
+- Docs actualizadas: `DEPLOY.md` (tabla de variables sin prefijo), `.env.local.example`, `src/lib/supabase/SETUP.md`.
 
 ## 5. Instrucciones de Despliegue Local
 
