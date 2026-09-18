@@ -1,0 +1,270 @@
+@import "tailwindcss";
+
+/*
+ * MASTER TOKENS — Dark RPG (Premium & Accesible)
+ * Fuente de verdad visual del proyecto. Cualquier cambio aquí debe reflejarse
+ * en /MASTER.md. Ver sistema_agentes.md — dominio de Hefesto.
+ */
+:root {
+  /* Fondos — Obsidiana / Carbón */
+  --color-obsidian: #0a0a0f;
+  --color-obsidian-soft: #12121a;
+  --color-carbon: #1a1a24;
+  --color-carbon-elevated: #23232f;
+  --color-border-subtle: #2e2e3d;
+
+  /* Texto */
+  --color-parchment: #e9e6df;
+  --color-parchment-muted: #a8a5b0;
+
+  /* Acentos "mágicos" */
+  --color-emerald-glow: #34d399;
+  --color-emerald-deep: #0f6b4f;
+  --color-gold-glow: #e8c468;
+  --color-gold-deep: #8a6a1f;
+  --color-neon: #7dd3fc;
+
+  /* Estado */
+  --color-danger: #f87171;
+  --color-success: var(--color-emerald-glow);
+
+  /* Foco (accesibilidad — WCAG) */
+  --color-focus-ring: var(--color-gold-glow);
+}
+
+@theme inline {
+  --color-obsidian: var(--color-obsidian);
+  --color-obsidian-soft: var(--color-obsidian-soft);
+  --color-carbon: var(--color-carbon);
+  --color-carbon-elevated: var(--color-carbon-elevated);
+  --color-border-subtle: var(--color-border-subtle);
+
+  --color-parchment: var(--color-parchment);
+  --color-parchment-muted: var(--color-parchment-muted);
+
+  --color-emerald-glow: var(--color-emerald-glow);
+  --color-emerald-deep: var(--color-emerald-deep);
+  --color-gold-glow: var(--color-gold-glow);
+  --color-gold-deep: var(--color-gold-deep);
+  --color-neon: var(--color-neon);
+
+  --color-danger: var(--color-danger);
+  --color-success: var(--color-success);
+  --color-focus-ring: var(--color-focus-ring);
+
+  --font-display: var(--font-display);
+  --font-sans: var(--font-sans);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border-subtle);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: 0.01em;
+  }
+
+  /* Focus ring visible y consistente en todo elemento interactivo (CRITICAL) */
+  :focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: var(--color-emerald-deep);
+    color: var(--color-parchment);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/*
+ * Atmósfera de la Forja — fondo dinámico con profundidad y textura.
+ * Dos capas fijas, pintadas en `layout.tsx` detrás de todo el contenido:
+ *  - .forge-atmosphere: gradientes radiales de luz de forja en las esquinas.
+ *  - .noise-overlay: grano sutil (2–5%) para dar textura táctil.
+ * Ambas son puramente decorativas (aria-hidden, pointer-events: none).
+ */
+.forge-atmosphere {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background-color: var(--color-obsidian);
+  background-image:
+    radial-gradient(ellipse 60% 50% at 6% 8%, rgba(232, 196, 104, 0.11), transparent 60%),
+    radial-gradient(ellipse 55% 45% at 96% 12%, rgba(52, 211, 153, 0.12), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 8% 102%, rgba(52, 211, 153, 0.09), transparent 60%),
+    radial-gradient(ellipse 55% 45% at 100% 98%, rgba(232, 196, 104, 0.09), transparent 60%);
+}
+
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.forge-atmosphere,
+.noise-overlay {
+  pointer-events: none;
+}
+
+/* La flotación de las runas del Hero ahora se resuelve con Framer Motion (ver Hero.tsx) — guardada por useReducedMotion(). */
+
+/*
+ * Partículas del Hero — Iteración 8 (Hefesto). Brasas/chispas de la forja
+ * flotando hacia arriba muy lento y sutil. `@keyframes` CSS puro (no
+ * Framer Motion/canvas) a propósito: el navegador las anima fuera del
+ * hilo principal de JS (mejor rendimiento con partículas simultáneas) y
+ * automáticamente quedan neutralizadas por la regla global de
+ * `prefers-reduced-motion` de arriba (que ya zeroea `animation-duration`
+ * en TODO `@keyframes` de la página) — sin necesidad de ningún guard de
+ * `useReducedMotion()` adicional, a diferencia de las animaciones
+ * `animate` de Framer Motion (Ember/Magnetic/CustomCursor).
+ */
+@keyframes ember-rise {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  90% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: translateY(-26rem) translateX(12px);
+    opacity: 0;
+  }
+}
+
+.animate-ember-rise {
+  animation-name: ember-rise;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  will-change: transform, opacity;
+}
+
+/*
+ * Custom cursor — Iteración 8 (Hefesto). El cursor nativo sólo se oculta
+ * cuando `CustomCursor.tsx` confirmó `matchMedia("(pointer: fine)")` en el
+ * cliente y agregó esta clase al <body> — nunca de forma incondicional.
+ * Los elementos de formulario conservan su cursor de texto nativo (`text`)
+ * porque seguir escribiendo con un punto luminoso en vez de un caret sería
+ * confuso, no decorativo.
+ */
+body.custom-cursor-active,
+body.custom-cursor-active a,
+body.custom-cursor-active button,
+body.custom-cursor-active [role="button"] {
+  cursor: none;
+}
+
+body.custom-cursor-active input,
+body.custom-cursor-active textarea {
+  cursor: text;
+}
+
+
+/*
+ * Media hover scaling — Iteración 19 (Hefesto, referencia: video).
+ * Equivalente CSS de Framer `{ scale: 1.05, duration: 0.8, ease: "circOut" }`
+ * (circOut ≈ cubic-bezier(0, 0.55, 0.45, 1)). Se dispara con hover o con
+ * foco de teclado dentro de la tarjeta (`.group`), y el global de
+ * `prefers-reduced-motion` lo neutraliza solo.
+ */
+.media-zoom {
+  transition: transform 0.8s cubic-bezier(0, 0.55, 0.45, 1);
+  transform-origin: center;
+  will-change: transform;
+}
+
+.group:hover .media-zoom,
+.group:focus-within .media-zoom,
+[data-revealed="true"] .media-zoom {
+  transform: scale(1.05);
+}
+
+/* Máscara inferior del retrato: se funde con la obsidiana del fondo. */
+.hero-portrait-mask {
+  -webkit-mask-image: linear-gradient(to bottom, #000 62%, transparent 98%);
+  mask-image: linear-gradient(to bottom, #000 62%, transparent 98%);
+}
+
+/*
+ * Inputs de la Forja — Iteración 21 (Footer inmersivo). Borde que se
+ * ilumina en :focus con un halo dorado/esmeralda. Se mantiene el outline
+ * global (:focus-visible) como indicador accesible adicional.
+ */
+.forge-input {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(10, 10, 15, 0.6);
+  padding: 0.8rem 1rem;
+  font-size: 0.95rem;
+  color: var(--color-parchment);
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.4s ease,
+    background-color 0.3s ease;
+}
+
+.forge-input::placeholder {
+  color: rgba(168, 165, 176, 0.55);
+}
+
+.forge-input:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.forge-input:focus {
+  outline: none;
+  border-color: rgba(232, 196, 104, 0.75);
+  background: rgba(18, 18, 26, 0.85);
+  box-shadow:
+    0 0 0 1px rgba(232, 196, 104, 0.35),
+    0 0 24px -2px rgba(232, 196, 104, 0.35),
+    0 0 60px -12px rgba(52, 211, 153, 0.35);
+}
+
+.forge-input:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.forge-input[aria-invalid="true"] {
+  border-color: rgba(248, 113, 113, 0.6);
+}
+
+/* Pantallas de error — Iteración 23: parpadeo del halo de la forja apagada. */
+@keyframes forge-flicker {
+  0%, 100% { opacity: 1; }
+  12% { opacity: 0.35; }
+  20% { opacity: 0.9; }
+  38% { opacity: 0.2; }
+  55% { opacity: 0.75; }
+  70% { opacity: 0.4; }
+}
+
+.animate-forge-flicker {
+  animation: forge-flicker 2.6s ease-in-out infinite;
+}

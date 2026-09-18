@@ -1,0 +1,152 @@
+import type { Metadata } from "next";
+import { Cinzel, Inter } from "next/font/google";
+import "./globals.css";
+import { draftMode } from "next/headers";
+import { SiteChrome } from "@/components/hefesto/sections";
+import { getNavigationForView } from "@/lib/minerva";
+import { SITE_URL } from "@/lib/site";
+import { Telemetry } from "@/components/poseidon/Telemetry";
+
+/** Poseidón, Iteración 24: la telemetría de Vercel sólo existe en builds de producción. */
+const TELEMETRY_ENABLED = process.env.NODE_ENV === "production";
+
+const cinzel = Cinzel({
+  variable: "--font-display",
+  subsets: ["latin"],
+  weight: ["400", "600", "700", "900"],
+});
+
+const inter = Inter({
+  variable: "--font-sans",
+  subsets: ["latin"],
+});
+
+// SITE_URL vive en `src/lib/site.ts` desde la Iteración 23 (env `NEXT_PUBLIC_SITE_URL`).
+const SITE_TITLE = "Devius — Hybrid Forgemaster · Portafolio";
+const SITE_DESCRIPTION =
+  "Portafolio interactivo de Devius, Hybrid Forgemaster (UX/UI + Frontend): quests (casos de estudio), skill tree (experiencia) e inventario de tecnologías, con métricas reales de impacto.";
+
+export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: SITE_TITLE,
+    template: "%s · Devius",
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: "Devius — Portafolio",
+  keywords: [
+    "Devius",
+    "portafolio UX/UI",
+    "frontend developer",
+    "diseño de producto",
+    "Next.js",
+    "React",
+    "case studies UX",
+  ],
+  authors: [{ name: "Devius", url: SITE_URL }],
+  creator: "Devius",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "profile",
+    url: SITE_URL,
+    siteName: "Devius — Portafolio",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    locale: "es_ES",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "Devius — Hybrid Forgemaster",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: ["/opengraph-image"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
+
+/**
+ * RootLayout — Apolo: aquí viven los dos componentes estructurales nuevos,
+ * Navbar (fijo) y Footer, envolviendo `children` (la única página del sitio
+ * por ahora). `scroll-smooth` en `<html>` habilita el scroll suave al hacer
+ * click en los anclas del Navbar; `prefers-reduced-motion` (ver globals.css)
+ * ya lo desactiva automáticamente (`scroll-behavior: auto !important`).
+ */
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const navigation = await getNavigationForView();
+  // Iteración 18 (APOLO — "El Puente Bifröst"): una sola lectura de
+  // `draftMode()` acá arriba, pasada hacia abajo a `PreviewBanner` (que
+  // la vuelve a leer ella misma, es un Server Component independiente) y
+  // a `SiteChrome` → `Navbar` (para el offset `top-9`, ver su docblock).
+  const { isEnabled: previewActive } = await draftMode();
+
+  // JSON-LD Person/ProfilePage (Apolo, auditoría 2026-09-15) — apunta a las
+  // mismas redes reales que ya sirve `getNavigationForView` (Deméter/Minerva),
+  // así que nunca se desincroniza de lo que ve el visitante en el Navbar/Footer.
+  const sameAs = navigation.socialLinks
+    .filter((link) => link.kind !== "email")
+    .map((link) => link.href);
+  const emailLink = navigation.socialLinks.find((link) => link.kind === "email");
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Person",
+        "@id": `${SITE_URL}/#person`,
+        name: "Devius",
+        jobTitle: "UX/UI Designer & Frontend Engineer",
+        url: SITE_URL,
+        ...(emailLink && { email: emailLink.href.replace(/^mailto:/, "") }),
+        ...(sameAs.length > 0 && { sameAs }),
+      },
+      {
+        "@type": "ProfilePage",
+        "@id": `${SITE_URL}/#profile`,
+        url: SITE_URL,
+        name: SITE_TITLE,
+        description: SITE_DESCRIPTION,
+        mainEntity: { "@id": `${SITE_URL}/#person` },
+        inLanguage: "es",
+      },
+    ],
+  };
+
+  return (
+    <html
+      lang="es"
+      className={`${cinzel.variable} ${inter.variable} h-full scroll-smooth antialiased`}
+    >
+      <body className="min-h-full flex flex-col bg-obsidian text-parchment font-sans">
+        {/* Atmósfera de la Forja — fondo + grano, dominio de Hefesto (ver globals.css) */}
+        <div aria-hidden className="forge-atmosphere" />
+        <div aria-hidden className="noise-overlay" />
+        {/* SiteChrome (Apolo, Iteración 15) decide si este chrome público
+            (Navbar/Footer/CustomCursor/Logros) se renderiza o no: en
+            `/admin/*` NO se renderiza nada de esto — ver SiteChrome.tsx
+            para el porqué (auditoría 2026-09-15, doble navegación en el CMS). */}
+        <SiteChrome navigation={navigation} previewActive={previewActive}>
+          {children}
+        </SiteChrome>
+        {/* JSON-LD estático, generado server-side a partir de datos propios (no HTML de usuario) — ver comentario arriba. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+        {/* Vercel Web Analytics + Speed Insights (Iteración 24) — ver components/poseidon/Telemetry.tsx. */}
+        {TELEMETRY_ENABLED && <Telemetry />}
+      </body>
+    </html>
+  );
+}
