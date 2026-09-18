@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { acquireScrollLock, releaseScrollLock } from "./scroll-lock";
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), [role="button"], input, select, textarea, [tabindex]:not([tabindex="-1"])';
@@ -31,14 +32,17 @@ export function useDialogPanel<T extends HTMLElement>(open: boolean, onClose: ()
   const panelRef = useRef<T>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
-  // Bloqueo de scroll del body mientras el panel está abierto.
+  // Bloqueo de scroll del body mientras el panel está abierto — Iteración
+  // 30: contador de referencias compartido (`scroll-lock.ts`) en vez de
+  // guardar/restaurar `document.body.style.overflow` acá mismo. Con un
+  // solo panel a la vez el resultado es idéntico; con dos solapados (la
+  // Command Palette abriendo el Drawer de Logros, por ejemplo) evita que
+  // el que cierra último pise el snapshot del que sigue abierto y deje el
+  // scroll bloqueado para siempre — ver el docblock de `scroll-lock.ts`.
   useEffect(() => {
     if (!open) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
+    acquireScrollLock();
+    return () => releaseScrollLock();
   }, [open]);
 
   // Focus trap + cierre con Escape + foco inicial/restaurado.

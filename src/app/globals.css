@@ -306,6 +306,20 @@ body.custom-cursor-active textarea {
  *      en vez de listarlas, así que se oculta entero. Character Sheet +
  *      Skill Tree son el foco real del CV impreso; Inventario queda
  *      visible (grilla estática, sin ese problema).
+ *
+ * Iteración 30 (Hades/Hefesto) — IMPRESIÓN DUAL: el bloque `:root { ... }`
+ * de abajo es el modo por defecto, "Eco" (sin atributo o
+ * `data-print-mode="eco"` en `<html>` — ver `PrintModeSync.tsx` /
+ * `print-mode-store.ts`). Cuando el visitante elige "Premium" desde la
+ * Paleta de Comandos o el botón del Footer, `html[data-print-mode="premium"]`
+ * (más abajo) PISA esos mismos tokens con la paleta Dark RPG original y
+ * agrega `print-color-adjust: exact` — sin esa propiedad, casi todos los
+ * navegadores omiten colores de fondo al imprimir/exportar a PDF por
+ * "economía de tinta" (el motivo de que el modo Eco funcione gratis, sin
+ * pedir nada especial: el papel blanco de base + texto negro alcanza).
+ * `body` ya trae `bg-obsidian text-parchment` (`layout.tsx`) — al ser
+ * clases de Tailwind atadas a `var(--color-*)`, heredan el remapeo solas,
+ * sin necesitar una regla `body { background: ... }` a mano acá.
  */
 @media print {
   @page {
@@ -314,6 +328,7 @@ body.custom-cursor-active textarea {
   }
 
   :root {
+    /* Eco (por defecto) — negro sobre blanco puro, ahorra tinta. */
     --color-obsidian: #ffffff;
     --color-obsidian-soft: #ffffff;
     --color-carbon: #ffffff;
@@ -330,10 +345,27 @@ body.custom-cursor-active textarea {
     --color-focus-ring: transparent;
   }
 
-  html,
-  body {
-    background: #ffffff !important;
-    color: #0a0a0a !important;
+  /* Premium — conserva la paleta Dark RPG original al exportar a PDF.
+     `print-color-adjust`/`-webkit-print-color-adjust` es una propiedad
+     heredada: alcanza con declararla acá (en `<html>`) para que TODO el
+     documento deje de omitir fondos de color al imprimir. */
+  html[data-print-mode="premium"] {
+    --color-obsidian: #0a0a0f;
+    --color-obsidian-soft: #12121a;
+    --color-carbon: #1a1a24;
+    --color-carbon-elevated: #23232f;
+    --color-border-subtle: #2e2e3d;
+    --color-parchment: #e9e6df;
+    --color-parchment-muted: #a8a5b0;
+    --color-emerald-glow: #34d399;
+    --color-emerald-deep: #0f6b4f;
+    --color-gold-glow: #e8c468;
+    --color-gold-deep: #8a6a1f;
+    --color-neon: #7dd3fc;
+    --color-danger: #f87171;
+    --color-focus-ring: transparent;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   /* (a) — ver docblock arriba. */

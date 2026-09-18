@@ -5,6 +5,7 @@ import {
   AchievementScrollTrigger,
   ContactForm,
   FooterContactActions,
+  PrintModeToggle,
   RevealText,
 } from "@/components/hefesto/ui";
 
@@ -95,9 +96,13 @@ export function Footer({ navigation }: FooterProps) {
       <div className="relative mx-auto max-w-6xl px-4 sm:px-8">
         <div className="flex flex-col items-start justify-between gap-2 border-t border-white/10 py-6 text-xs text-parchment-muted/75 sm:flex-row sm:items-center">
           <p>© {year} Devius — forjado con Next.js, Tailwind CSS y Framer Motion.</p>
-          <Link href="/#home" className="rounded px-1 transition-colors hover:text-parchment">
-            Volver arriba ↑
-          </Link>
+          <div className="flex items-center gap-4">
+            {/* Iteración 30 (Hades/Hefesto) — Eco/Premium, ver `print-mode-store.ts`. */}
+            <PrintModeToggle className="print:hidden" />
+            <Link href="/#home" className="rounded px-1 transition-colors hover:text-parchment">
+              Volver arriba ↑
+            </Link>
+          </div>
         </div>
       </div>
       <p

@@ -41,3 +41,5 @@ export * from "./TelemetryRadar";
 export * from "./KonamiSecret";
 export * from "./CommandPalette";
 export * from "./CommandPaletteTrigger";
+export * from "./PrintModeSync";
+export * from "./PrintModeToggle";

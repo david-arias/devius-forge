@@ -7,6 +7,7 @@ import {
   CornerDownLeft,
   KeyRound,
   Network,
+  Printer,
   ScrollText,
   Search,
   Trophy,
@@ -26,6 +27,7 @@ import { useDialogPanel } from "@/lib/hefesto/use-dialog-panel";
 import { useAchievementsStore } from "@/lib/minerva/achievements-store";
 import { useAudioPreferenceStore } from "@/lib/minerva/audio-preference-store";
 import { useCommandPaletteStore } from "@/lib/minerva/command-palette-store";
+import { usePrintModeStore } from "@/lib/minerva/print-mode-store";
 import { cn } from "@/lib/utils";
 
 /**
@@ -136,6 +138,8 @@ function CommandPaletteContent({ quests, onClose }: CommandPaletteContentProps) 
   const muted = useAudioPreferenceStore((state) => state.muted);
   const toggleMuted = useAudioPreferenceStore((state) => state.toggleMuted);
   const openAchievementsDrawer = useAchievementsStore((state) => state.openDrawer);
+  const printMode = usePrintModeStore((state) => state.mode);
+  const togglePrintMode = usePrintModeStore((state) => state.toggleMode);
 
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
@@ -187,9 +191,20 @@ function CommandPaletteContent({ quests, onClose }: CommandPaletteContentProps) 
         keywords: "logros achievements trofeos progreso",
         onSelect: () => runAndClose(openAchievementsDrawer),
       },
+      {
+        id: "action-print-mode",
+        label: printMode === "eco" ? "Impresión: cambiar a Premium" : "Impresión: cambiar a Eco",
+        hint:
+          printMode === "eco"
+            ? "Conserva los fondos oscuros al exportar a PDF"
+            : "Texto negro sobre blanco — pensado para papel",
+        icon: <Printer className="h-4 w-4" aria-hidden />,
+        keywords: "impresion imprimir print pdf eco premium modo",
+        onSelect: () => runAndClose(togglePrintMode),
+      },
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `goToSkillTree`/`runAndClose` son closures inline recreadas cada render sobre `pathname`/`router`; memoizar por `muted`/`toggleMuted`/`openAchievementsDrawer` alcanza, no hace falta re-listarlas.
-    [muted, toggleMuted, openAchievementsDrawer]
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `goToSkillTree`/`runAndClose` son closures inline recreadas cada render sobre `pathname`/`router`; memoizar por los valores/acciones de store alcanza, no hace falta re-listar las closures.
+    [muted, toggleMuted, openAchievementsDrawer, printMode, togglePrintMode]
   );
 
   const questItems: CommandItem[] = useMemo(

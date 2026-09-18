@@ -10,6 +10,7 @@ import {
   CustomCursor,
   KonamiSecret,
   PreviewBanner,
+  PrintModeSync,
 } from "@/components/hefesto/ui";
 import { type Navigation } from "@/lib/demeter/schemas";
 import { PageTransition } from "@/components/minerva/PageTransition";
@@ -72,6 +73,8 @@ export function SiteChrome({ navigation, children, previewActive = false, quests
       <CommandPalette quests={quests} />
       {/* Iteración 26: el Código Konami sólo vive en el sitio público. */}
       <KonamiSecret />
+      {/* Iteración 30: sincroniza `print-mode-store.ts` → `data-print-mode` en `<html>` (ver `globals.css` → `@media print`). */}
+      <PrintModeSync />
     </>
   );
 }
