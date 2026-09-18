@@ -72,6 +72,12 @@ export function QuestForm({ initialValues, collapsible = false, dragHandle }: Qu
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const isCollapsible = collapsible && Boolean(initialValues);
   const [isOpen, setIsOpen] = useState(!isCollapsible);
+  // Iteración 31 (Minerva/Hefesto, i18n) — toggle ES/EN: decide qué set de
+  // inputs (español o su traducción al inglés) se muestra para los campos
+  // traducibles (title/summary/role + los 4 capítulos). Ambos sets quedan
+  // SIEMPRE montados en el DOM (sólo se ocultan con `hidden`) para que
+  // react-hook-form no pierda su valor al cambiar de pestaña.
+  const [formLang, setFormLang] = useState<"es" | "en">("es");
   const pushToast = useAdminToastStore((state) => state.push);
 
   const {
@@ -97,6 +103,21 @@ export function QuestForm({ initialValues, collapsible = false, dragHandle }: Qu
       uxProcess: initialValues?.caseStudy.uxProcess ?? "",
       uiSolution: initialValues?.caseStudy.uiSolution ?? "",
       impact: initialValues?.caseStudy.impact ?? "",
+      // Iteración 31 (i18n): sin fuente propia todavía en `Quest` (el
+      // dominio de LECTURA sólo expone el contenido YA resuelto en un
+      // idioma, ver `mapSupabaseQuestRow`) — el formulario siempre
+      // arranca con las traducciones vacías; si ya existen en Supabase,
+      // se pierden al reabrir el formulario hasta que se re-carguen acá.
+      // Documentado como pendiente en `handoff.md` (Iteración 31):
+      // requeriría que `QuestUpsertInput`/`initialValues` viajen con las
+      // columnas `_en` crudas además del valor ya resuelto.
+      titleEn: "",
+      summaryEn: "",
+      roleEn: "",
+      problemEn: "",
+      uxProcessEn: "",
+      uiSolutionEn: "",
+      impactEn: "",
     },
   });
 
@@ -226,6 +247,39 @@ export function QuestForm({ initialValues, collapsible = false, dragHandle }: Qu
               className="flex flex-col gap-5"
               noValidate
             >
+              {/* Iteración 31 (Hefesto, i18n) — toggle ES/EN pedido por Deméter
+                  ("un toggle que permita editar los campos en ambos idiomas").
+                  Sólo afecta a los campos traducibles (título/resumen/rol +
+                  los 4 capítulos) — el resto del formulario (id, tech, color,
+                  imagen, etc.) es idioma-agnóstico y sigue siempre visible. */}
+              <div className="flex items-center gap-1 self-start rounded-lg border border-white/10 bg-obsidian/60 p-1 text-xs font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setFormLang("es")}
+                  aria-pressed={formLang === "es"}
+                  className={cn(
+                    "rounded-md px-3 py-1 transition-colors duration-150",
+                    formLang === "es" ? "bg-emerald-glow/20 text-emerald-glow" : "text-parchment-muted hover:text-parchment"
+                  )}
+                >
+                  Español
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormLang("en")}
+                  aria-pressed={formLang === "en"}
+                  className={cn(
+                    "rounded-md px-3 py-1 transition-colors duration-150",
+                    formLang === "en" ? "bg-emerald-glow/20 text-emerald-glow" : "text-parchment-muted hover:text-parchment"
+                  )}
+                >
+                  English
+                </button>
+                <span className="px-2 text-[0.65rem] font-normal normal-case text-parchment-muted/70">
+                  {formLang === "en" ? "Campos opcionales — vacío = usa el valor en español" : "Contenido base (obligatorio)"}
+                </span>
+              </div>
+
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="id" className="text-sm font-medium text-parchment">
                   Id / slug (usado en /quests/[slug])
@@ -242,7 +296,7 @@ export function QuestForm({ initialValues, collapsible = false, dragHandle }: Qu
                 )}
               </div>
 
-              <div className="flex flex-col gap-1.5">
+              <div hidden={formLang !== "es"} className="flex flex-col gap-1.5">
                 <label htmlFor="title" className="text-sm font-medium text-parchment">
                   Título
                 </label>
@@ -257,8 +311,19 @@ export function QuestForm({ initialValues, collapsible = false, dragHandle }: Qu
                   </p>
                 )}
               </div>
+              <div hidden={formLang !== "en"} className="flex flex-col gap-1.5">
+                <label htmlFor="titleEn" className="text-sm font-medium text-parchment">
+                  Title (EN)
+                </label>
+                <input
+                  id="titleEn"
+                  {...register("titleEn")}
+                  placeholder="Sin traducir — usa el título en español"
+                  className="rounded-md border border-white/10 bg-obsidian/60 px-3 py-2 text-sm text-parchment focus-visible:border-gold-glow/50"
+                />
+              </div>
 
-              <div className="flex flex-col gap-1.5">
+              <div hidden={formLang !== "es"} className="flex flex-col gap-1.5">
                 <label htmlFor="summary" className="text-sm font-medium text-parchment">
                   Resumen
                 </label>
@@ -274,9 +339,21 @@ export function QuestForm({ initialValues, collapsible = false, dragHandle }: Qu
                   </p>
                 )}
               </div>
+              <div hidden={formLang !== "en"} className="flex flex-col gap-1.5">
+                <label htmlFor="summaryEn" className="text-sm font-medium text-parchment">
+                  Summary (EN)
+                </label>
+                <textarea
+                  id="summaryEn"
+                  rows={3}
+                  {...register("summaryEn")}
+                  placeholder="Untranslated — falls back to the Spanish summary"
+                  className="rounded-md border border-white/10 bg-obsidian/60 px-3 py-2 text-sm text-parchment focus-visible:border-gold-glow/50"
+                />
+              </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
+                <div hidden={formLang !== "es"} className="flex flex-col gap-1.5">
                   <label htmlFor="role" className="text-sm font-medium text-parchment">
                     Rol
                   </label>
@@ -290,6 +367,17 @@ export function QuestForm({ initialValues, collapsible = false, dragHandle }: Qu
                       {errors.role.message}
                     </p>
                   )}
+                </div>
+                <div hidden={formLang !== "en"} className="flex flex-col gap-1.5">
+                  <label htmlFor="roleEn" className="text-sm font-medium text-parchment">
+                    Role (EN)
+                  </label>
+                  <input
+                    id="roleEn"
+                    {...register("roleEn")}
+                    placeholder="Untranslated — falls back to the Spanish role"
+                    className="rounded-md border border-white/10 bg-obsidian/60 px-3 py-2 text-sm text-parchment focus-visible:border-gold-glow/50"
+                  />
                 </div>
 
                 <div className="flex flex-col gap-1.5">
@@ -384,7 +472,7 @@ export function QuestForm({ initialValues, collapsible = false, dragHandle }: Qu
                 )}
               </div>
 
-              <div className="flex flex-col gap-1.5 border-t border-white/10 pt-5">
+              <div hidden={formLang !== "es"} className="flex flex-col gap-1.5 border-t border-white/10 pt-5">
                 <label htmlFor="problem" className="text-sm font-medium text-parchment">
                   Capítulo I — El Problema
                 </label>
@@ -400,8 +488,20 @@ export function QuestForm({ initialValues, collapsible = false, dragHandle }: Qu
                   </p>
                 )}
               </div>
+              <div hidden={formLang !== "en"} className="flex flex-col gap-1.5 border-t border-white/10 pt-5">
+                <label htmlFor="problemEn" className="text-sm font-medium text-parchment">
+                  Chapter I — The Problem
+                </label>
+                <textarea
+                  id="problemEn"
+                  rows={3}
+                  {...register("problemEn")}
+                  placeholder="Untranslated — falls back to the Spanish chapter"
+                  className="rounded-md border border-white/10 bg-obsidian/60 px-3 py-2 text-sm text-parchment focus-visible:border-gold-glow/50"
+                />
+              </div>
 
-              <div className="flex flex-col gap-1.5">
+              <div hidden={formLang !== "es"} className="flex flex-col gap-1.5">
                 <label htmlFor="uxProcess" className="text-sm font-medium text-parchment">
                   Capítulo II — El Proceso UX
                 </label>
@@ -417,8 +517,20 @@ export function QuestForm({ initialValues, collapsible = false, dragHandle }: Qu
                   </p>
                 )}
               </div>
+              <div hidden={formLang !== "en"} className="flex flex-col gap-1.5">
+                <label htmlFor="uxProcessEn" className="text-sm font-medium text-parchment">
+                  Chapter II — The UX Process
+                </label>
+                <textarea
+                  id="uxProcessEn"
+                  rows={3}
+                  {...register("uxProcessEn")}
+                  placeholder="Untranslated — falls back to the Spanish chapter"
+                  className="rounded-md border border-white/10 bg-obsidian/60 px-3 py-2 text-sm text-parchment focus-visible:border-gold-glow/50"
+                />
+              </div>
 
-              <div className="flex flex-col gap-1.5">
+              <div hidden={formLang !== "es"} className="flex flex-col gap-1.5">
                 <label htmlFor="uiSolution" className="text-sm font-medium text-parchment">
                   Capítulo III — La Solución UI
                 </label>
@@ -434,8 +546,20 @@ export function QuestForm({ initialValues, collapsible = false, dragHandle }: Qu
                   </p>
                 )}
               </div>
+              <div hidden={formLang !== "en"} className="flex flex-col gap-1.5">
+                <label htmlFor="uiSolutionEn" className="text-sm font-medium text-parchment">
+                  Chapter III — The UI Solution
+                </label>
+                <textarea
+                  id="uiSolutionEn"
+                  rows={3}
+                  {...register("uiSolutionEn")}
+                  placeholder="Untranslated — falls back to the Spanish chapter"
+                  className="rounded-md border border-white/10 bg-obsidian/60 px-3 py-2 text-sm text-parchment focus-visible:border-gold-glow/50"
+                />
+              </div>
 
-              <div className="flex flex-col gap-1.5">
+              <div hidden={formLang !== "es"} className="flex flex-col gap-1.5">
                 <label htmlFor="impact" className="text-sm font-medium text-parchment">
                   Capítulo IV — El Impacto
                 </label>
@@ -450,6 +574,18 @@ export function QuestForm({ initialValues, collapsible = false, dragHandle }: Qu
                     {errors.impact.message}
                   </p>
                 )}
+              </div>
+              <div hidden={formLang !== "en"} className="flex flex-col gap-1.5">
+                <label htmlFor="impactEn" className="text-sm font-medium text-parchment">
+                  Chapter IV — The Impact
+                </label>
+                <textarea
+                  id="impactEn"
+                  rows={3}
+                  {...register("impactEn")}
+                  placeholder="Untranslated — falls back to the Spanish chapter"
+                  className="rounded-md border border-white/10 bg-obsidian/60 px-3 py-2 text-sm text-parchment focus-visible:border-gold-glow/50"
+                />
               </div>
 
               <Button type="submit" variant="cta" className="w-fit" disabled={savePending}>

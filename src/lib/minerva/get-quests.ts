@@ -1,5 +1,6 @@
 import { draftMode } from "next/headers";
 import { getQuests as fetchQuests } from "@/lib/demeter/queries/quests";
+import { getLocale } from "@/lib/i18n/get-locale";
 
 /**
  * Servicio de Minerva: expone Quests ya listas para Hefesto.
@@ -17,5 +18,10 @@ import { getQuests as fetchQuests } from "@/lib/demeter/queries/quests";
  */
 export async function getQuestsForView() {
   const { isEnabled } = await draftMode();
-  return fetchQuests(isEnabled ? { includeDrafts: true } : undefined);
+  // Iteración 31 (i18n): `getLocale()` lee la cookie `devius-locale` — el
+  // mismo request que resuelve Draft Mode ahora también resuelve el
+  // idioma, así que el contenido llega ya traducido en el primer render
+  // (SSR real, sin parpadeo de contenido en español).
+  const locale = await getLocale();
+  return fetchQuests({ ...(isEnabled ? { includeDrafts: true } : {}), locale });
 }

@@ -13,7 +13,26 @@ import { type QuestUpsertInput } from "./quests";
  * "use client" lo toca nunca.
  */
 
+/**
+ * `""` (string vacío, valor por defecto de un input de formulario sin
+ * completar) → `null` (columna sin traducir, cae al fallback en español
+ * en la lectura) — Iteración 31 (i18n). Evita que guardar el formulario
+ * sin tocar la pestaña "EN" borre una traducción existente con un valor
+ * vacío real: como el form siempre manda el estado completo, "" significa
+ * literalmente "no hay traducción acá".
+ */
+function emptyToNull(value: string | undefined): string | null {
+  return value && value.trim().length > 0 ? value : null;
+}
+
 function toRow(input: QuestUpsertInput) {
+  const caseStudyEn = input.caseStudyEn;
+  const hasCaseStudyEn =
+    caseStudyEn &&
+    [caseStudyEn.problem, caseStudyEn.uxProcess, caseStudyEn.uiSolution, caseStudyEn.impact].some(
+      (value) => value && value.trim().length > 0
+    );
+
   return {
     id: input.id,
     title: input.title,
@@ -31,6 +50,18 @@ function toRow(input: QuestUpsertInput) {
       ui_solution: input.caseStudy.uiSolution,
       impact: input.caseStudy.impact,
     },
+    // Iteración 31 (Deméter, i18n) — columnas hermanas en inglés, ver `009_i18n.sql`.
+    title_en: emptyToNull(input.titleEn),
+    summary_en: emptyToNull(input.summaryEn),
+    role_en: emptyToNull(input.roleEn),
+    case_study_en: hasCaseStudyEn
+      ? {
+          problem: emptyToNull(caseStudyEn?.problem) ?? undefined,
+          ux_process: emptyToNull(caseStudyEn?.uxProcess) ?? undefined,
+          ui_solution: emptyToNull(caseStudyEn?.uiSolution) ?? undefined,
+          impact: emptyToNull(caseStudyEn?.impact) ?? undefined,
+        }
+      : null,
   };
 }
 
@@ -73,7 +104,10 @@ export async function duplicateQuest(id: string): Promise<Quest> {
     throw new Error("No se encontró la quest a duplicar.");
   }
 
-  const parsed = mapSupabaseQuestRow(SupabaseQuestRowSchema.parse(existing));
+  // `locale: "es"` explícito — duplicar siempre parte del contenido base
+  // en español (las columnas `_en` crudas se copian tal cual más abajo
+  // vía `...rest`, no se pierden, sólo no entran en `parsed`).
+  const parsed = mapSupabaseQuestRow(SupabaseQuestRowSchema.parse(existing), "es");
   const newId = `${parsed.id}-copia-${Date.now().toString(36)}`;
   const newTitle = `${parsed.title} (copia)`;
 

@@ -13,6 +13,12 @@ import { CharacterSchema, type Character } from "../schemas";
  * Iteración 19 (DEMÉTER — "Data Real"): se eliminó el objeto de datos de
  * prueba. Si la fila `default` todavía no existe (o Supabase no responde),
  * la lectura devuelve `null` y cada consumidor muestra su estado vacío.
+ *
+ * Iteración 31 (i18n): esta función ya NO mapea a `Character` — devuelve
+ * la fila cruda (con sus columnas `_en`, si `009_i18n.sql` corrió) tal
+ * cual la entrega Supabase. El idioma se resuelve recién en
+ * `getCharacter()`, después de la caché (mismo patrón que `quests.ts`),
+ * así que una sola entrada de caché sirve para los dos idiomas.
  */
 async function fetchCharacterFromSourceUncached(): Promise<unknown | null> {
   try {
@@ -26,14 +32,7 @@ async function fetchCharacterFromSourceUncached(): Promise<unknown | null> {
     if (error) throw error;
     if (!data) return null;
 
-    return {
-      name: data.name,
-      characterClass: data.character_class,
-      tagline: data.tagline,
-      bio: data.bio,
-      // `?? undefined`: la columna es nullable y puede no existir antes de `005_hero_image.sql`.
-      heroImageUrl: data.hero_image_url ?? undefined,
-    };
+    return data;
   } catch (err) {
     console.warn(
       "[Deméter] No se pudo leer public.character_sheet de Supabase — devolviendo null (estado vacío en la UI).",
@@ -48,9 +47,27 @@ const getCachedCharacterRaw = unstable_cache(fetchCharacterFromSourceUncached, [
   tags: ["character"],
 });
 
+/** Idioma de lectura — Iteración 31. Repetido acá (en vez de importarlo de `schema.ts`) para no acoplar este repositorio al de Quests. */
+type Locale = "es" | "en";
+
 /** `null` = el Character Sheet todavía no se cargó desde el CMS. */
-export async function getCharacter(): Promise<Character | null> {
+export async function getCharacter(options?: { locale?: Locale }): Promise<Character | null> {
   const raw = await getCachedCharacterRaw();
   if (raw == null) return null;
-  return CharacterSchema.parse(raw);
+
+  const row = raw as Record<string, unknown>;
+  const useEn = options?.locale === "en";
+  const pick = (base: unknown, translated: unknown) =>
+    useEn && typeof translated === "string" && translated.length > 0 ? translated : base;
+  const pickArray = (base: unknown, translated: unknown) =>
+    useEn && Array.isArray(translated) && translated.length > 0 ? translated : base;
+
+  return CharacterSchema.parse({
+    name: row.name,
+    characterClass: pick(row.character_class, row.character_class_en),
+    tagline: pick(row.tagline, row.tagline_en),
+    bio: pickArray(row.bio, row.bio_en),
+    // `?? undefined`: la columna es nullable y puede no existir antes de `005_hero_image.sql`.
+    heroImageUrl: row.hero_image_url ?? undefined,
+  });
 }

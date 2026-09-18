@@ -9,6 +9,7 @@ import {
   type CommandPaletteQuest,
   CustomCursor,
   KonamiSecret,
+  LanguageSync,
   PreviewBanner,
   PrintModeSync,
 } from "@/components/hefesto/ui";
@@ -75,6 +76,8 @@ export function SiteChrome({ navigation, children, previewActive = false, quests
       <KonamiSecret />
       {/* Iteración 30: sincroniza `print-mode-store.ts` → `data-print-mode` en `<html>` (ver `globals.css` → `@media print`). */}
       <PrintModeSync />
+      {/* Iteración 31 (i18n): sincroniza `language-store.ts` (localStorage) → cookie `devius-locale`, y dispara `router.refresh()` al cambiar (ver `LanguageSync.tsx`). */}
+      <LanguageSync />
     </>
   );
 }

@@ -1,11 +1,12 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Menu, Search, Trophy, X } from "lucide-react";
+import { Languages, Menu, Search, Trophy, X } from "lucide-react";
 import { useId, useState } from "react";
 import { type Navigation } from "@/lib/demeter/schemas";
 import { useAchievementsStore } from "@/lib/minerva/achievements-store";
 import { useCommandPaletteStore } from "@/lib/minerva/command-palette-store";
+import { useLanguageStore } from "@/lib/minerva/language-store";
 import { useDialogPanel } from "@/lib/hefesto/use-dialog-panel";
 import { Button } from "./Button";
 
@@ -34,6 +35,8 @@ export function MobileMenu({ navigation }: MobileMenuProps) {
   const unlock = useAchievementsStore((state) => state.unlock);
   const openAchievementsDrawer = useAchievementsStore((state) => state.openDrawer);
   const openCommandPalette = useCommandPaletteStore((state) => state.openPalette);
+  const locale = useLanguageStore((state) => state.locale);
+  const toggleLocale = useLanguageStore((state) => state.toggleLocale);
 
   const emailLink = navigation.socialLinks.find((link) => link.kind === "email");
 
@@ -133,6 +136,16 @@ export function MobileMenu({ navigation }: MobileMenuProps) {
                 >
                   <Trophy className="h-4 w-4" aria-hidden />
                   Ver logros
+                </button>
+
+                {/* Equivalente mobile de `LanguageToggle` (Iteración 31, i18n) — sin cerrar el drawer, para que el visitante vea el cambio reflejarse antes de seguir navegando. */}
+                <button
+                  type="button"
+                  onClick={toggleLocale}
+                  className="inline-flex items-center gap-2 px-3 text-sm text-parchment-muted transition-colors duration-150 hover:text-parchment"
+                >
+                  <Languages className="h-4 w-4" aria-hidden />
+                  {locale === "es" ? "Switch to English" : "Cambiar a Español"}
                 </button>
               </div>
 

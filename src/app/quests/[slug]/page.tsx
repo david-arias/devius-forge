@@ -22,6 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import { getQuestsForView } from "@/lib/minerva";
 import { getQuests } from "@/lib/demeter/queries/quests";
+import { SITE_URL } from "@/lib/site";
 
 interface QuestPageProps {
   params: Promise<{ slug: string }>;
@@ -62,6 +63,16 @@ export async function generateMetadata({ params }: QuestPageProps): Promise<Meta
   return {
     title: `${quest.title} — Devius`,
     description: quest.summary,
+    // Iteración 31 (Apolo, i18n) — mismo criterio que `layout.tsx`: sin
+    // rutas segmentadas por idioma, las dos versiones de este caso de
+    // estudio viven en la misma URL (`/quests/${slug}`).
+    alternates: {
+      languages: {
+        "es-CO": `${SITE_URL}/quests/${slug}`,
+        "en-US": `${SITE_URL}/quests/${slug}`,
+        "x-default": `${SITE_URL}/quests/${slug}`,
+      },
+    },
   };
 }
 

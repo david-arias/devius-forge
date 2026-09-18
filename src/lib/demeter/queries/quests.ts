@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { getSupabaseClient } from "@/lib/supabase/client";
-import { mapSupabaseQuestRow, SupabaseQuestRowSchema } from "@/lib/supabase/schema";
+import { mapSupabaseQuestRow, SupabaseQuestRowSchema, type Locale } from "@/lib/supabase/schema";
 import { QuestSchema, type Quest } from "../schemas";
 
 /**
@@ -49,7 +49,12 @@ async function fetchQuestsFromSourceUncached(): Promise<unknown[]> {
     if (error) throw error;
     if (!data || data.length === 0) return [];
 
-    return data.map((row) => mapSupabaseQuestRow(SupabaseQuestRowSchema.parse(row)));
+    // Iteración 31 (i18n): se cachean las FILAS CRUDAS (validadas contra
+    // `SupabaseQuestRowSchema`, con sus columnas `_en` incluidas), no ya
+    // mapeadas a `Quest` — el idioma se resuelve recién en `getQuests()`,
+    // después de leer la caché, así que UNA sola entrada de caché sirve
+    // para español e inglés (no se duplica el fetch de Supabase por idioma).
+    return data.map((row) => SupabaseQuestRowSchema.parse(row));
   } catch (err) {
     console.warn(
       "[Deméter] No se pudo leer public.quests de Supabase — devolviendo lista vacía (estado vacío en la UI).",
@@ -73,17 +78,37 @@ const getCachedQuestsRaw = unstable_cache(fetchQuestsFromSourceUncached, ["demet
   tags: ["quests"],
 });
 
-export async function getQuests(options?: { includeDrafts?: boolean }): Promise<Quest[]> {
+export async function getQuests(options?: { includeDrafts?: boolean; locale?: Locale }): Promise<Quest[]> {
   const raw = await getCachedQuestsRaw();
-  const quests = QuestSchema.array().parse(raw);
+  const rows = SupabaseQuestRowSchema.array().parse(raw);
+  const quests = QuestSchema.array().parse(rows.map((row) => mapSupabaseQuestRow(row, options?.locale ?? "es")));
   if (options?.includeDrafts) return quests;
   return quests.filter((quest) => quest.isPublished);
 }
 
-/** Forma editable por el CMS — deja afuera `media`/`testimonial`/`chapterMedia`, todavía sin formulario (ver TODO en `QuestForm.tsx`). Re-exportado por `quests.mutations.ts` (un `type` no genera código en runtime, así que no rompe el aislamiento cliente/servidor). */
+/**
+ * Forma editable por el CMS — deja afuera `media`/`testimonial`/`chapterMedia`, todavía sin formulario (ver TODO en `QuestForm.tsx`).
+ * Re-exportado por `quests.mutations.ts` (un `type` no genera código en runtime, así que no rompe el aislamiento cliente/servidor).
+ *
+ * Los 4 campos `*_en`/`caseStudyEn` (Iteración 31, i18n) son opcionales:
+ * el formulario los manda vacíos ("") cuando el editor no completó la
+ * traducción todavía, y `toRow()` (`quests.mutations.ts`) los guarda como
+ * `null` en ese caso — nunca sobreescribe una traducción existente con
+ * texto vacío por accidente porque el form siempre manda el valor
+ * completo (controlado), no un patch parcial.
+ */
 export type QuestUpsertInput = Pick<
   Quest,
   "id" | "title" | "summary" | "role" | "tech" | "href" | "status" | "isPublished" | "accentColor" | "imagePlaceholder"
 > & {
   caseStudy: Pick<Quest["caseStudy"], "problem" | "uxProcess" | "uiSolution" | "impact">;
+  titleEn?: string;
+  summaryEn?: string;
+  roleEn?: string;
+  caseStudyEn?: {
+    problem?: string;
+    uxProcess?: string;
+    uiSolution?: string;
+    impact?: string;
+  };
 };

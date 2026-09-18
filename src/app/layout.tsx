@@ -9,6 +9,7 @@ import { SITE_URL } from "@/lib/site";
 import { SupabaseRuntimeConfig } from "@/components/eter/SupabaseRuntimeConfig";
 import { readSupabaseEnv } from "@/lib/supabase/env";
 import { Telemetry } from "@/components/poseidon/Telemetry";
+import { getLocale } from "@/lib/i18n/get-locale";
 
 /** Poseidón, Iteración 24: la telemetría de Vercel sólo existe en builds de producción. */
 const TELEMETRY_ENABLED = process.env.NODE_ENV === "production";
@@ -50,6 +51,20 @@ export const metadata: Metadata = {
   creator: "Devius",
   alternates: {
     canonical: "/",
+    // Iteración 31 (Apolo, i18n): el sitio NO usa prefijos de ruta por
+    // idioma (`/es/`, `/en/`) — el idioma se resuelve por cookie
+    // (`devius-locale`, ver `lib/i18n/get-locale.ts`), así que las dos
+    // versiones viven en la MISMA URL. Aun así declarar
+    // `alternates.languages` le indica a Google que el contenido de esta
+    // URL existe en más de un idioma (mejor que no decir nada), y
+    // `x-default` cubre el caso de un visitante sin preferencia
+    // detectada. Si en el futuro el i18n pasa a rutas segmentadas, esto
+    // se actualiza para apuntar a URLs distintas por idioma.
+    languages: {
+      "es-CO": SITE_URL,
+      "en-US": SITE_URL,
+      "x-default": SITE_URL,
+    },
     types: {
       // Iteración 29 (Apolo) — feed RSS de Quests publicadas, ver `src/app/feed.xml/route.ts`.
       "application/rss+xml": `${SITE_URL}/feed.xml`,
@@ -99,7 +114,16 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   // `getQuestsForView()` ya filtra por publicadas salvo Draft Mode activo
   // (ver su docblock) — se reduce a la forma mínima que la paleta
   // necesita (`CommandPaletteQuest`) antes de pasarla hacia abajo.
-  const [navigation, quests] = await Promise.all([getNavigationForView(), getQuestsForView()]);
+  // Iteración 31 (Apolo/Minerva, i18n): una sola lectura de `getLocale()`
+  // acá arriba (cookie `devius-locale`) — `getQuestsForView()` ya la lee
+  // internamente para las Quests, y acá se vuelve a usar sólo para
+  // `<html lang>`, que SÍ tiene que reflejar el idioma activo (a11y/SEO:
+  // lectores de pantalla y buscadores confían en ese atributo).
+  const [navigation, quests, locale] = await Promise.all([
+    getNavigationForView(),
+    getQuestsForView(),
+    getLocale(),
+  ]);
   const commandPaletteQuests: CommandPaletteQuest[] = quests.map((quest) => ({
     id: quest.id,
     title: quest.title,
@@ -142,14 +166,14 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         name: SITE_TITLE,
         description: SITE_DESCRIPTION,
         mainEntity: { "@id": `${SITE_URL}/#person` },
-        inLanguage: "es",
+        inLanguage: locale,
       },
     ],
   };
 
   return (
     <html
-      lang="es"
+      lang={locale}
       className={`${cinzel.variable} ${inter.variable} h-full scroll-smooth antialiased`}
     >
       <body className="min-h-full flex flex-col bg-obsidian text-parchment font-sans">

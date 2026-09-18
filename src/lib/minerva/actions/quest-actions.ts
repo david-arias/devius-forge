@@ -39,6 +39,14 @@ function parseFormData(formData: FormData) {
     uxProcess: String(formData.get("uxProcess") ?? ""),
     uiSolution: String(formData.get("uiSolution") ?? ""),
     impact: String(formData.get("impact") ?? ""),
+    // Iteración 31 (i18n) — traducciones EN, todas opcionales (ver `QuestFormSchema`).
+    titleEn: String(formData.get("titleEn") ?? ""),
+    summaryEn: String(formData.get("summaryEn") ?? ""),
+    roleEn: String(formData.get("roleEn") ?? ""),
+    problemEn: String(formData.get("problemEn") ?? ""),
+    uxProcessEn: String(formData.get("uxProcessEn") ?? ""),
+    uiSolutionEn: String(formData.get("uiSolutionEn") ?? ""),
+    impactEn: String(formData.get("impactEn") ?? ""),
   };
 }
 

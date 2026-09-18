@@ -31,6 +31,38 @@ const questMediaRowSchema = z.object({
   poster: z.string().optional(),
 });
 
+/** Forma de `case_study` (y `case_study_en`) — factorizada para no repetirla dos veces. */
+const caseStudyRowSchema = z.object({
+  problem: z.string(),
+  ux_process: z.string(),
+  ui_solution: z.string(),
+  impact: z.string(),
+  chapter_media: z
+    .object({
+      problem: questMediaRowSchema.optional(),
+      ux_process: questMediaRowSchema.optional(),
+      ui_solution: questMediaRowSchema.optional(),
+      impact: questMediaRowSchema.optional(),
+    })
+    .nullable()
+    .optional(),
+});
+
+/**
+ * `case_study_en` — Iteración 31 (i18n). Misma forma que `case_study`
+ * pero TODOS los campos son opcionales: una Quest puede tener sólo
+ * algunos capítulos traducidos (p.ej. "problem" en inglés pero
+ * "uxProcess" todavía sin traducir) — el fallback es por capítulo, no
+ * todo-o-nada (ver `mapSupabaseQuestRow` abajo). `chapter_media` nunca
+ * se traduce (son imágenes, no texto), así que no se repite acá.
+ */
+const caseStudyEnRowSchema = z.object({
+  problem: z.string().optional(),
+  ux_process: z.string().optional(),
+  ui_solution: z.string().optional(),
+  impact: z.string().optional(),
+});
+
 /**
  * Forma cruda de una fila de `quests` tal como la devuelve
  * `supabase.from("quests").select("*")` — snake_case, JSONB para los
@@ -51,21 +83,18 @@ export const SupabaseQuestRowSchema = z.object({
   image_placeholder: z.object({ from: z.string(), to: z.string() }),
   media: questMediaRowSchema.nullable(),
   testimonial: z.object({ quote: z.string(), author: z.string(), role: z.string() }).nullable(),
-  case_study: z.object({
-    problem: z.string(),
-    ux_process: z.string(),
-    ui_solution: z.string(),
-    impact: z.string(),
-    chapter_media: z
-      .object({
-        problem: questMediaRowSchema.optional(),
-        ux_process: questMediaRowSchema.optional(),
-        ui_solution: questMediaRowSchema.optional(),
-        impact: questMediaRowSchema.optional(),
-      })
-      .nullable()
-      .optional(),
-  }),
+  case_study: caseStudyRowSchema,
+  /**
+   * Columnas de traducción — Iteración 31 (Deméter, "Expansión Global",
+   * `009_i18n.sql`). Todas `nullable().optional()`: filas creadas antes
+   * de esta migración, o simplemente todavía no traducidas, no las
+   * tienen — `mapSupabaseQuestRow` cae al valor en español fila por fila
+   * (y capítulo por capítulo en `case_study_en`).
+   */
+  title_en: z.string().nullable().optional(),
+  summary_en: z.string().nullable().optional(),
+  role_en: z.string().nullable().optional(),
+  case_study_en: caseStudyEnRowSchema.nullable().optional(),
   sort_order: z.number().optional(),
   /** Iteración 23 — usado por `sitemap.ts` como `lastModified`. */
   updated_at: z.string().optional(),
@@ -73,33 +102,33 @@ export const SupabaseQuestRowSchema = z.object({
 
 export type SupabaseQuestRow = z.infer<typeof SupabaseQuestRowSchema>;
 
+/** Idioma de lectura — Iteración 31. `"es"` es el idioma "fuente" de todo el contenido existente. */
+export type Locale = "es" | "en";
+
 /**
  * Adaptador fila-de-Supabase → `Quest`. Este es exactamente el código que
  * va dentro de `fetchQuestsFromSource()` en
- * `src/lib/demeter/queries/quests.ts` el día que se reemplace el array
- * estático — se deja hecho y ya validado con Zod (`QuestSchema.parse` lo
- * sigue corriendo `getQuests()` después, así que queda doblemente
- * verificado: forma de la fila cruda, y forma final del dominio).
+ * `src/lib/demeter/queries/quests.ts` — `QuestSchema.parse` lo sigue
+ * corriendo `getQuests()` después, así que queda doblemente verificado:
+ * forma de la fila cruda, y forma final del dominio.
  *
- * Uso previsto (no activo todavía — el array estático sigue siendo la
- * fuente real hasta que exista un proyecto de Supabase conectado):
- * ```ts
- * async function fetchQuestsFromSource(): Promise<unknown[]> {
- *   const { data, error } = await getSupabaseClient()
- *     .from("quests")
- *     .select("*")
- *     .order("sort_order", { ascending: true });
- *   if (error) throw error;
- *   return data.map((row) => mapSupabaseQuestRow(SupabaseQuestRowSchema.parse(row)));
- * }
- * ```
+ * `locale` (Iteración 31, default `"es"` — nunca rompe a un llamador
+ * viejo que no lo pasa): con `"en"`, cada campo traducible usa su columna
+ * `_en` SI existe y no es un string vacío; si no, cae al valor en
+ * español. El fallback es campo por campo (y capítulo por capítulo
+ * dentro de `caseStudy`) — una Quest con sólo el título traducido ya
+ * muestra ESE campo en inglés sin esperar a que se traduzca todo lo demás.
  */
-export function mapSupabaseQuestRow(row: SupabaseQuestRow): Quest {
+export function mapSupabaseQuestRow(row: SupabaseQuestRow, locale: Locale = "es"): Quest {
+  const useEn = locale === "en";
+  const pick = (base: string, translated: string | null | undefined) =>
+    useEn && translated ? translated : base;
+
   const mapped = {
     id: row.id,
-    title: row.title,
-    summary: row.summary,
-    role: row.role,
+    title: pick(row.title, row.title_en),
+    summary: pick(row.summary, row.summary_en),
+    role: pick(row.role, row.role_en),
     tech: row.tech,
     href: row.href ?? undefined,
     status: row.status,
@@ -110,10 +139,10 @@ export function mapSupabaseQuestRow(row: SupabaseQuestRow): Quest {
     testimonial: row.testimonial ?? undefined,
     updatedAt: row.updated_at,
     caseStudy: {
-      problem: row.case_study.problem,
-      uxProcess: row.case_study.ux_process,
-      uiSolution: row.case_study.ui_solution,
-      impact: row.case_study.impact,
+      problem: pick(row.case_study.problem, row.case_study_en?.problem),
+      uxProcess: pick(row.case_study.ux_process, row.case_study_en?.ux_process),
+      uiSolution: pick(row.case_study.ui_solution, row.case_study_en?.ui_solution),
+      impact: pick(row.case_study.impact, row.case_study_en?.impact),
       chapterMedia: row.case_study.chapter_media
         ? {
             problem: row.case_study.chapter_media.problem,

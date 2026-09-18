@@ -7,6 +7,7 @@ import {
   AchievementsDrawerTrigger,
   Button,
   CommandPaletteTrigger,
+  LanguageToggle,
   Magnetic,
   MobileMenu,
 } from "@/components/hefesto/ui";
@@ -102,6 +103,8 @@ export function Navbar({ navigation, previewActive = false }: NavbarProps) {
 
           <CommandPaletteTrigger className="hidden sm:flex" />
           <AchievementsDrawerTrigger className="hidden sm:flex" />
+          {/* Iteración 31 (Hefesto, i18n) — selector ES/EN sutil, ver `LanguageToggle.tsx`. */}
+          <LanguageToggle className="hidden sm:inline-flex" />
 
           {emailLink && (
             <Magnetic strength={0.3}>

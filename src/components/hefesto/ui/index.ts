@@ -43,3 +43,5 @@ export * from "./CommandPalette";
 export * from "./CommandPaletteTrigger";
 export * from "./PrintModeSync";
 export * from "./PrintModeToggle";
+export * from "./LanguageSync";
+export * from "./LanguageToggle";

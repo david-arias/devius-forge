@@ -6,6 +6,7 @@ import {
   ArrowUp,
   CornerDownLeft,
   KeyRound,
+  Languages,
   Network,
   Printer,
   ScrollText,
@@ -27,7 +28,9 @@ import { useDialogPanel } from "@/lib/hefesto/use-dialog-panel";
 import { useAchievementsStore } from "@/lib/minerva/achievements-store";
 import { useAudioPreferenceStore } from "@/lib/minerva/audio-preference-store";
 import { useCommandPaletteStore } from "@/lib/minerva/command-palette-store";
+import { useLanguageStore } from "@/lib/minerva/language-store";
 import { usePrintModeStore } from "@/lib/minerva/print-mode-store";
+import { useTranslation } from "@/lib/i18n/use-translation";
 import { cn } from "@/lib/utils";
 
 /**
@@ -140,6 +143,9 @@ function CommandPaletteContent({ quests, onClose }: CommandPaletteContentProps) 
   const openAchievementsDrawer = useAchievementsStore((state) => state.openDrawer);
   const printMode = usePrintModeStore((state) => state.mode);
   const togglePrintMode = usePrintModeStore((state) => state.toggleMode);
+  const locale = useLanguageStore((state) => state.locale);
+  const toggleLocale = useLanguageStore((state) => state.toggleLocale);
+  const { t } = useTranslation();
 
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
@@ -169,42 +175,50 @@ function CommandPaletteContent({ quests, onClose }: CommandPaletteContentProps) 
     () => [
       {
         id: "action-skill-tree",
-        label: "Saltar al Skill Tree",
-        hint: "Experiencia laboral",
+        label: t.commandPalette.skillTreeLabel,
+        hint: t.commandPalette.skillTreeHint,
         icon: <Network className="h-4 w-4" aria-hidden />,
-        keywords: "skill tree experiencia progresion trabajo laboral",
+        keywords: "skill tree experiencia progresion trabajo laboral work experience",
         onSelect: () => runAndClose(goToSkillTree),
       },
       {
         id: "action-audio",
-        label: muted ? "Activar audio" : "Silenciar audio",
-        hint: "Efectos de sonido del sitio",
+        label: muted ? t.commandPalette.audioUnmute : t.commandPalette.audioMute,
+        hint: t.commandPalette.audioHint,
         icon: muted ? <VolumeX className="h-4 w-4" aria-hidden /> : <Volume2 className="h-4 w-4" aria-hidden />,
-        keywords: "audio sonido sfx silenciar activar mute",
+        keywords: "audio sonido sfx silenciar activar mute sound",
         onSelect: () => runAndClose(toggleMuted),
       },
       {
         id: "action-achievements",
-        label: "Ver logros",
-        hint: "Progreso desbloqueado en el sitio",
+        label: t.commandPalette.achievements,
+        hint: t.commandPalette.achievementsHint,
         icon: <Trophy className="h-4 w-4" aria-hidden />,
         keywords: "logros achievements trofeos progreso",
         onSelect: () => runAndClose(openAchievementsDrawer),
       },
       {
         id: "action-print-mode",
-        label: printMode === "eco" ? "Impresión: cambiar a Premium" : "Impresión: cambiar a Eco",
-        hint:
-          printMode === "eco"
-            ? "Conserva los fondos oscuros al exportar a PDF"
-            : "Texto negro sobre blanco — pensado para papel",
+        label: printMode === "eco" ? t.printMode.toEco : t.printMode.toPremium,
+        hint: printMode === "eco" ? t.printMode.hintEco : t.printMode.hintPremium,
         icon: <Printer className="h-4 w-4" aria-hidden />,
         keywords: "impresion imprimir print pdf eco premium modo",
         onSelect: () => runAndClose(togglePrintMode),
       },
+      {
+        // Iteración 31 (Hefesto, i18n) — acción rápida de idioma pedida
+        // explícitamente en el brief ("añádelo como una acción rápida en
+        // la Command Palette").
+        id: "action-language",
+        label: t.language.action,
+        hint: t.language.current,
+        icon: <Languages className="h-4 w-4" aria-hidden />,
+        keywords: "idioma language espanol ingles english spanish locale",
+        onSelect: () => runAndClose(toggleLocale),
+      },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `goToSkillTree`/`runAndClose` son closures inline recreadas cada render sobre `pathname`/`router`; memoizar por los valores/acciones de store alcanza, no hace falta re-listar las closures.
-    [muted, toggleMuted, openAchievementsDrawer, printMode, togglePrintMode]
+    [muted, toggleMuted, openAchievementsDrawer, printMode, togglePrintMode, locale, toggleLocale, t]
   );
 
   const questItems: CommandItem[] = useMemo(
@@ -241,9 +255,9 @@ function CommandPaletteContent({ quests, onClose }: CommandPaletteContentProps) 
     : questItems;
 
   const sections: Array<{ label: string; items: CommandItem[] }> = [
-    ...(secretItem ? [{ label: "Acceso", items: [secretItem] }] : []),
-    ...(filteredActions.length > 0 ? [{ label: "Acciones", items: filteredActions }] : []),
-    ...(filteredQuests.length > 0 ? [{ label: "Quests", items: filteredQuests }] : []),
+    ...(secretItem ? [{ label: t.commandPalette.sectionAccess, items: [secretItem] }] : []),
+    ...(filteredActions.length > 0 ? [{ label: t.commandPalette.sectionActions, items: filteredActions }] : []),
+    ...(filteredQuests.length > 0 ? [{ label: t.commandPalette.sectionQuests, items: filteredQuests }] : []),
   ];
 
   const flatItems = sections.flatMap((section) => section.items);
@@ -311,7 +325,7 @@ function CommandPaletteContent({ quests, onClose }: CommandPaletteContentProps) 
               setActiveIndex(0);
             }}
             onKeyDown={handleInputKeyDown}
-            placeholder="Buscar una Quest, saltar a una sección…"
+            placeholder={t.commandPalette.placeholder}
             className="w-full bg-transparent text-sm text-parchment placeholder:text-parchment-muted/60 focus:outline-none"
           />
           <kbd className="hidden shrink-0 rounded border border-white/15 px-1.5 py-0.5 text-[0.65rem] text-parchment-muted/70 sm:inline-block">
@@ -322,7 +336,7 @@ function CommandPaletteContent({ quests, onClose }: CommandPaletteContentProps) 
         <div id={listboxId} role="listbox" aria-label="Resultados" className="max-h-[min(24rem,60vh)] overflow-y-auto p-2">
           {flatItems.length === 0 && (
             <p className="px-3 py-8 text-center text-sm text-parchment-muted">
-              Sin resultados para &ldquo;{query}&rdquo;.
+              {t.commandPalette.noResults(query)}
             </p>
           )}
 
@@ -374,11 +388,11 @@ function CommandPaletteContent({ quests, onClose }: CommandPaletteContentProps) 
           <span className="inline-flex items-center gap-1">
             <ArrowUp className="h-3 w-3" aria-hidden />
             <ArrowDown className="h-3 w-3" aria-hidden />
-            navegar
+            {t.commandPalette.navigateHint}
           </span>
           <span className="inline-flex items-center gap-1">
             <CornerDownLeft className="h-3 w-3" aria-hidden />
-            seleccionar
+            {t.commandPalette.selectHint}
           </span>
         </div>
       </motion.div>

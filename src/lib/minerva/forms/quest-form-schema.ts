@@ -2,15 +2,23 @@ import { z } from "zod";
 
 /**
  * Schema de FORMULARIO (no de dominio) para una Quest — Minerva,
- * Iteración 14 (actualizado en la 16, "CMS V2"). `QuestSchema`
- * (`src/lib/demeter/schemas/quest.ts`) tiene campos anidados
- * (`imagePlaceholder`, `caseStudy`, `caseStudy.chapterMedia`, `media`,
- * `testimonial`) que no mapean 1:1 a un formulario plano — acá se aplana
- * lo editable a mano (los 4 capítulos del caso de estudio, el placeholder
- * de gradiente, `tech` como CSV) y `toQuestInput()` arma de vuelta la
- * forma anidada que `QuestSchema` espera. `media`/`testimonial`/
- * `chapterMedia` quedan fuera del scaffold de esta iteración a propósito
- * (se completan subiendo imágenes con `ImageUploader`, Iteración 15+).
+ * Iteración 14 (actualizado en la 16, "CMS V2", y en la 31, "Expansión
+ * Global"/i18n). `QuestSchema` (`src/lib/demeter/schemas/quest.ts`) tiene
+ * campos anidados (`imagePlaceholder`, `caseStudy`, `caseStudy.chapterMedia`,
+ * `media`, `testimonial`) que no mapean 1:1 a un formulario plano — acá se
+ * aplana lo editable a mano (los 4 capítulos del caso de estudio, el
+ * placeholder de gradiente, `tech` como CSV) y `toQuestInput()` arma de
+ * vuelta la forma anidada que `QuestUpsertInput` espera. `media`/
+ * `testimonial`/`chapterMedia` quedan fuera del scaffold de esta
+ * iteración a propósito (se completan subiendo imágenes con
+ * `ImageUploader`, Iteración 15+).
+ *
+ * Campos `*En` (Iteración 31, i18n): la traducción al inglés de cada
+ * campo traducible — SIEMPRE opcionales (`z.string().optional()`, sin
+ * `.min(1)`) a propósito: una Quest puede publicarse sólo en español y
+ * traducirse después, capítulo por capítulo. `QuestForm.tsx` los muestra
+ * detrás de un toggle ES/EN (ver su docblock) en vez de duplicar todo el
+ * formulario.
  */
 export const QuestFormSchema = z.object({
   id: z.string().min(1, "El id/slug es obligatorio (se usa en /quests/[slug])."),
@@ -37,11 +45,19 @@ export const QuestFormSchema = z.object({
   uxProcess: z.string().min(1, "El capítulo \"El Proceso UX\" es obligatorio."),
   uiSolution: z.string().min(1, "El capítulo \"La Solución UI\" es obligatorio."),
   impact: z.string().min(1, "El capítulo \"El Impacto\" es obligatorio."),
+  // ── Traducciones EN (Iteración 31, i18n) — todas opcionales, ver docblock. ──
+  titleEn: z.string().optional(),
+  summaryEn: z.string().optional(),
+  roleEn: z.string().optional(),
+  problemEn: z.string().optional(),
+  uxProcessEn: z.string().optional(),
+  uiSolutionEn: z.string().optional(),
+  impactEn: z.string().optional(),
 });
 
 export type QuestFormValues = z.infer<typeof QuestFormSchema>;
 
-/** Convierte los valores validados del formulario a la forma de `Quest` (Deméter). */
+/** Convierte los valores validados del formulario a la forma de `QuestUpsertInput` (Deméter). */
 export function toQuestInput(values: QuestFormValues) {
   return {
     id: values.id,
@@ -62,6 +78,15 @@ export function toQuestInput(values: QuestFormValues) {
       uxProcess: values.uxProcess,
       uiSolution: values.uiSolution,
       impact: values.impact,
+    },
+    titleEn: values.titleEn,
+    summaryEn: values.summaryEn,
+    roleEn: values.roleEn,
+    caseStudyEn: {
+      problem: values.problemEn,
+      uxProcess: values.uxProcessEn,
+      uiSolution: values.uiSolutionEn,
+      impact: values.impactEn,
     },
   };
 }
