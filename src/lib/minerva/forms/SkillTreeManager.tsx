@@ -20,11 +20,14 @@ import { DragHandle, SortableItem } from "@/components/hefesto/ui";
 import { updateSkillTreeOrderAction } from "@/lib/minerva/actions/skill-actions";
 import { useAdminToastStore } from "@/lib/minerva/admin-toast-store";
 import { type SkillNode } from "@/lib/demeter/schemas";
+import { type SkillNodeEnDraft } from "@/lib/demeter/queries/skill-tree";
 import { SkillsForm } from "./SkillsForm";
 
 interface SkillTreeManagerProps {
   /** Nodos ya ordenados por `sort_order` — viene de `getSkillTree()` (Deméter). */
   nodes: SkillNode[];
+  /** Iteración 32 (i18n) — borrador EN por id de nodo, viene de `getSkillTreeEnDrafts()` (Deméter). */
+  enDrafts: Record<string, SkillNodeEnDraft>;
 }
 
 /**
@@ -37,7 +40,7 @@ interface SkillTreeManagerProps {
  * `@dnd-kit` y misma lógica de reordenamiento optimista que
  * `QuestsManager.tsx` — ver ahí el detalle.
  */
-export function SkillTreeManager({ nodes: initialNodes }: SkillTreeManagerProps) {
+export function SkillTreeManager({ nodes: initialNodes, enDrafts }: SkillTreeManagerProps) {
   const [nodes, setNodes] = useState(initialNodes);
   const [, startTransition] = useTransition();
   const pushToast = useAdminToastStore((state) => state.push);
@@ -75,6 +78,7 @@ export function SkillTreeManager({ nodes: initialNodes }: SkillTreeManagerProps)
               {({ attributes, listeners }) => (
                 <SkillsForm
                   initialValues={node}
+                  initialValuesEn={enDrafts[node.id]}
                   dragHandle={<DragHandle attributes={attributes} listeners={listeners} label={`nodo "${node.label}"`} />}
                 />
               )}

@@ -73,3 +73,34 @@ export async function getSkillTree(options?: { locale?: Locale }): Promise<Skill
   const locale = options?.locale ?? "es";
   return SkillNodeSchema.array().parse(rows.map((row) => mapRow(row, locale)));
 }
+
+/** Borrador de traducción EN de un nodo del Skill Tree, tal como lo edita `SkillsForm` — Iteración 32. */
+export interface SkillNodeEnDraft {
+  labelEn: string;
+  descriptionEn: string;
+  achievementsEn: string;
+}
+
+/**
+ * `getSkillTreeEnDrafts()` — Deméter, Iteración 32 ("i18n Absoluto").
+ * Mismo motivo que `getQuestsRaw()`/`extractQuestEnDraft()` en
+ * `quests.ts`: devuelve un `Record<id, borrador EN>` a partir de la
+ * MISMA entrada de caché que `getSkillTree()`, para que el CMS pueda
+ * precargar el inglés de cada nodo sin perder el español.
+ */
+export async function getSkillTreeEnDrafts(): Promise<Record<string, SkillNodeEnDraft>> {
+  const raw = await getCachedSkillTreeRaw();
+  const rows = raw as Record<string, unknown>[];
+  const result: Record<string, SkillNodeEnDraft> = {};
+  for (const row of rows) {
+    const id = typeof row.id === "string" ? row.id : undefined;
+    if (!id) continue;
+    const achievementsEn = Array.isArray(row.achievements_en) ? (row.achievements_en as string[]) : [];
+    result[id] = {
+      labelEn: typeof row.label_en === "string" ? row.label_en : "",
+      descriptionEn: typeof row.description_en === "string" ? row.description_en : "",
+      achievementsEn: achievementsEn.join("\n"),
+    };
+  }
+  return result;
+}

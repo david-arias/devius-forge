@@ -71,3 +71,28 @@ export async function getCharacter(options?: { locale?: Locale }): Promise<Chara
     heroImageUrl: row.hero_image_url ?? undefined,
   });
 }
+
+/** Borrador de traducción EN del Character Sheet, tal como lo edita `CharacterForm` — Iteración 32. */
+export interface CharacterEnDraft {
+  characterClassEn: string;
+  taglineEn: string;
+  bioEn: string;
+}
+
+/**
+ * `getCharacterEnDraft()` — Deméter, Iteración 32 ("i18n Absoluto").
+ * Mismo motivo que `getQuestsRaw()`/`extractQuestEnDraft()` en
+ * `quests.ts`: `Character` sólo representa un idioma a la vez, así que
+ * el CMS necesita esta lectura aparte para poder precargar el inglés sin
+ * perder el español. Lee la MISMA entrada de caché que `getCharacter()`.
+ */
+export async function getCharacterEnDraft(): Promise<CharacterEnDraft> {
+  const raw = await getCachedCharacterRaw();
+  const row = (raw ?? {}) as Record<string, unknown>;
+  const bioEn = Array.isArray(row.bio_en) ? (row.bio_en as string[]) : [];
+  return {
+    characterClassEn: typeof row.character_class_en === "string" ? row.character_class_en : "",
+    taglineEn: typeof row.tagline_en === "string" ? row.tagline_en : "",
+    bioEn: bioEn.join("\n"),
+  };
+}

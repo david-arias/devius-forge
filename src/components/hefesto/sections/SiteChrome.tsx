@@ -14,6 +14,7 @@ import {
   PrintModeSync,
 } from "@/components/hefesto/ui";
 import { type Navigation } from "@/lib/demeter/schemas";
+import { type Dictionary } from "@/lib/i18n/locales/es";
 import { PageTransition } from "@/components/minerva/PageTransition";
 import { Footer } from "./Footer";
 import { Navbar } from "./Navbar";
@@ -25,6 +26,8 @@ interface SiteChromeProps {
   previewActive?: boolean;
   /** Iteración 29 — Quests publicadas para la Paleta de Comandos (`CommandPalette.tsx`), resueltas en `layout.tsx`. */
   quests: CommandPaletteQuest[];
+  /** Iteración 32 (i18n) — textos del Footer, resueltos server-side en `layout.tsx` y pasados hacia abajo (ver el docblock de `Footer.tsx`). */
+  footerT: Dictionary["footer"];
 }
 
 /**
@@ -51,7 +54,7 @@ interface SiteChromeProps {
  * Iteración 14) y `AdminToastHost` (Iteración 15) son la única
  * navegación/feedback dentro de `(protected)/layout.tsx`.
  */
-export function SiteChrome({ navigation, children, previewActive = false, quests }: SiteChromeProps) {
+export function SiteChrome({ navigation, children, previewActive = false, quests, footerT }: SiteChromeProps) {
   const pathname = usePathname();
   const isAdminRoute = pathname?.startsWith("/admin") ?? false;
 
@@ -67,7 +70,7 @@ export function SiteChrome({ navigation, children, previewActive = false, quests
       <Navbar navigation={navigation} previewActive={previewActive} />
       {/* Iteración 19 (MINERVA): transiciones de página fluidas — Navbar/Footer quedan fijos. */}
       <PageTransition>{children}</PageTransition>
-      <Footer navigation={navigation} />
+      <Footer navigation={navigation} t={footerT} />
       <AchievementToast />
       <AchievementsDrawer />
       {/* Iteración 29: la Paleta de Comandos (Cmd+K), sólo en el sitio público — mismo criterio que el resto de este chrome. */}

@@ -12,6 +12,7 @@ import { useAchievementsStore } from "@/lib/minerva/achievements-store";
 import { ContactFormSchema, type ContactFormValues } from "@/lib/minerva/forms/contact-form-schema";
 import { trackForgeEvent } from "@/lib/minerva/telemetry";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/use-translation";
 import { Button } from "./Button";
 
 const TOAST_MS = 5000;
@@ -65,6 +66,7 @@ function Field({ id, label, error, className, children }: FieldProps) {
 export function ContactForm({ className }: { className?: string }) {
   const baseId = useId();
   const reduce = useReducedMotion();
+  const { t } = useTranslation();
   const unlock = useAchievementsStore((state) => state.unlock);
   const mounted = useSyncExternalStore(
     subscribeNoop,
@@ -120,14 +122,14 @@ export function ContactForm({ className }: { className?: string }) {
         method="post"
         onSubmit={handleSubmit(onValid)}
         noValidate
-        aria-label="Formulario de contacto"
+        aria-label={t.contactForm.ariaLabel}
         className={cn("grid grid-cols-1 gap-5 sm:grid-cols-2", className)}
       >
-        <Field id={ids.name} label="Nombre" error={errors.name?.message}>
+        <Field id={ids.name} label={t.contactForm.nameLabel} error={errors.name?.message}>
           <input
             id={ids.name}
             autoComplete="name"
-            placeholder="Tu nombre"
+            placeholder={t.contactForm.namePlaceholder}
             aria-invalid={!!errors.name}
             aria-describedby={errors.name ? `${ids.name}-error` : undefined}
             className="forge-input"
@@ -135,13 +137,13 @@ export function ContactForm({ className }: { className?: string }) {
           />
         </Field>
 
-        <Field id={ids.email} label="Correo" error={errors.email?.message}>
+        <Field id={ids.email} label={t.contactForm.emailLabel} error={errors.email?.message}>
           <input
             id={ids.email}
             type="email"
             autoComplete="email"
             inputMode="email"
-            placeholder="tu@correo.com"
+            placeholder={t.contactForm.emailPlaceholder}
             aria-invalid={!!errors.email}
             aria-describedby={errors.email ? `${ids.email}-error` : undefined}
             className="forge-input"
@@ -149,11 +151,11 @@ export function ContactForm({ className }: { className?: string }) {
           />
         </Field>
 
-        <Field id={ids.content} label="Mensaje" error={errors.content?.message} className="sm:col-span-2">
+        <Field id={ids.content} label={t.contactForm.messageLabel} error={errors.content?.message} className="sm:col-span-2">
           <textarea
             id={ids.content}
             rows={5}
-            placeholder="Contame sobre tu próxima Quest…"
+            placeholder={t.contactForm.messagePlaceholder}
             aria-invalid={!!errors.content}
             aria-describedby={errors.content ? `${ids.content}-error` : undefined}
             className="forge-input resize-y"
@@ -168,14 +170,14 @@ export function ContactForm({ className }: { className?: string }) {
         </div>
 
         <div className="flex flex-col-reverse items-start gap-4 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-parchment-muted/80">Respondo en menos de 48 h. Sin spam, nunca.</p>
+          <p className="text-xs text-parchment-muted/80">{t.contactForm.responseTime}</p>
           <Button type="submit" variant="cta" disabled={pending} className="gap-2 px-6 py-3">
             {pending ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
             ) : (
               <Send className="h-4 w-4" aria-hidden />
             )}
-            {pending ? "Forjando…" : "Enviar mensaje"}
+            {pending ? t.contactForm.submitPending : t.contactForm.submitIdle}
           </Button>
         </div>
       </form>
@@ -217,14 +219,14 @@ export function ContactForm({ className }: { className?: string }) {
               </span>
               <div className="relative">
                 <p className="font-display text-sm text-parchment">
-                  {toast.kind === "success" ? "¡Mensaje forjado!" : "La forja se enfrió"}
+                  {toast.kind === "success" ? t.contactForm.toastSuccessTitle : t.contactForm.toastErrorTitle}
                 </p>
                 <p className="mt-0.5 text-xs leading-relaxed text-parchment-muted">{toast.message}</p>
               </div>
               <button
                 type="button"
                 onClick={() => setToast(null)}
-                aria-label="Cerrar notificación"
+                aria-label={t.contactForm.closeNotification}
                 className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-md text-parchment-muted transition-colors hover:text-parchment"
               >
                 <X className="h-3.5 w-3.5" aria-hidden />

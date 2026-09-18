@@ -10,6 +10,7 @@ import { SupabaseRuntimeConfig } from "@/components/eter/SupabaseRuntimeConfig";
 import { readSupabaseEnv } from "@/lib/supabase/env";
 import { Telemetry } from "@/components/poseidon/Telemetry";
 import { getLocale } from "@/lib/i18n/get-locale";
+import { getTranslations } from "@/lib/i18n/get-translations";
 
 /** Poseidón, Iteración 24: la telemetría de Vercel sólo existe en builds de producción. */
 const TELEMETRY_ENABLED = process.env.NODE_ENV === "production";
@@ -119,10 +120,11 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   // internamente para las Quests, y acá se vuelve a usar sólo para
   // `<html lang>`, que SÍ tiene que reflejar el idioma activo (a11y/SEO:
   // lectores de pantalla y buscadores confían en ese atributo).
-  const [navigation, quests, locale] = await Promise.all([
+  const [navigation, quests, locale, t] = await Promise.all([
     getNavigationForView(),
     getQuestsForView(),
     getLocale(),
+    getTranslations(),
   ]);
   const commandPaletteQuests: CommandPaletteQuest[] = quests.map((quest) => ({
     id: quest.id,
@@ -185,7 +187,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             (Navbar/Footer/CustomCursor/Logros) se renderiza o no: en
             `/admin/*` NO se renderiza nada de esto — ver SiteChrome.tsx
             para el porqué (auditoría 2026-09-15, doble navegación en el CMS). */}
-        <SiteChrome navigation={navigation} previewActive={previewActive} quests={commandPaletteQuests}>
+        <SiteChrome navigation={navigation} previewActive={previewActive} quests={commandPaletteQuests} footerT={t.footer}>
           {children}
         </SiteChrome>
         {/* JSON-LD estático, generado server-side a partir de datos propios (no HTML de usuario) — ver comentario arriba. */}

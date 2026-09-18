@@ -1,6 +1,7 @@
 import { Code2, PenTool, ScrollText } from "lucide-react";
 import { type Character } from "@/lib/demeter/schemas";
 import { Card, EmptyState, SectionHeading, StaggerReveal } from "@/components/hefesto/ui";
+import { getTranslations } from "@/lib/i18n/get-translations";
 
 interface CharacterSheetProps {
   /** `null` = ficha todavía sin cargar en Supabase. */
@@ -13,15 +14,17 @@ interface CharacterSheetProps {
  * (`pb-16 sm:pb-20`) para que dos cartas de disciplina (UX/UI + Frontend)
  * floten superpuestas sobre su borde inferior (`-mt-10`/`-mt-12`, `z-10`).
  */
-export function CharacterSheet({ character }: CharacterSheetProps) {
+export async function CharacterSheet({ character }: CharacterSheetProps) {
+  const t = await getTranslations();
+
   if (!character) {
     return (
       <section id="character-sheet" className="mx-auto max-w-6xl px-4 py-20 sm:px-8 sm:py-28 print:py-6">
-        <SectionHeading index="02" eyebrow="Personaje" title="Character Sheet" />
+        <SectionHeading index="02" eyebrow={t.characterSheet.eyebrow} title="Character Sheet" />
         <EmptyState
           icon={ScrollText}
-          title="El pergamino está en blanco"
-          description="Esta ficha todavía no fue escrita. Pronto vas a encontrar acá la historia detrás de la forja."
+          title={t.characterSheet.emptyTitle}
+          description={t.characterSheet.emptyDescription}
         />
       </section>
     );
@@ -29,7 +32,7 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
 
   return (
     <section id="character-sheet" className="mx-auto max-w-6xl px-4 py-20 sm:px-8 sm:py-28 print:py-6">
-      <SectionHeading index="02" eyebrow="Personaje" title="Character Sheet">
+      <SectionHeading index="02" eyebrow={t.characterSheet.eyebrow} title="Character Sheet">
         <p className="mt-2 inline-flex items-center gap-2 text-sm text-parchment-muted">
           <span className="text-parchment">{character.name}</span>
           <span aria-hidden className="text-border-subtle">
@@ -64,11 +67,8 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
               <PenTool className="h-5 w-5" aria-hidden />
             </span>
             <div>
-              <h3 className="font-display text-parchment">UX/UI Design</h3>
-              <p className="mt-1 text-sm leading-relaxed text-parchment/60">
-                Investigo, itero y valido con research y prototipado antes de que exista una
-                sola línea de código.
-              </p>
+              <h3 className="font-display text-parchment">{t.characterSheet.uxuiTitle}</h3>
+              <p className="mt-1 text-sm leading-relaxed text-parchment/60">{t.characterSheet.uxuiDescription}</p>
             </div>
           </Card>
 
@@ -77,11 +77,8 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
               <Code2 className="h-5 w-5" aria-hidden />
             </span>
             <div>
-              <h3 className="font-display text-parchment">Frontend Engineering</h3>
-              <p className="mt-1 text-sm leading-relaxed text-parchment/60">
-                Convierto cada decisión de diseño en interfaces reales: performantes,
-                animadas y accesibles.
-              </p>
+              <h3 className="font-display text-parchment">{t.characterSheet.frontendTitle}</h3>
+              <p className="mt-1 text-sm leading-relaxed text-parchment/60">{t.characterSheet.frontendDescription}</p>
             </div>
           </Card>
         </div>

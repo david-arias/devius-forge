@@ -2,10 +2,13 @@ import { z } from "zod";
 
 /**
  * Schema de FORMULARIO (no de dominio) para un nodo del Skill Tree —
- * Minerva, Iteración 14. Espejo de `SkillNodeSchema`
- * (`src/lib/demeter/schemas/skill-node.ts`), con `achievements` como
- * string multilínea (un logro por línea) en vez de `string[]` — mismo
- * criterio que `character-form-schema.ts` para `bio`.
+ * Minerva, Iteración 14, extendido en la 32 ("i18n Absoluto"). Espejo de
+ * `SkillNodeSchema` (`src/lib/demeter/schemas/skill-node.ts`), con
+ * `achievements` como string multilínea (un logro por línea) en vez de
+ * `string[]` — mismo criterio que `character-form-schema.ts` para `bio`.
+ *
+ * Campos `*En` (Iteración 32, i18n): traducción al inglés — SIEMPRE
+ * opcionales, mismo criterio que `QuestFormSchema` (`quest-form-schema.ts`).
  */
 export const SkillsFormSchema = z.object({
   id: z
@@ -17,11 +20,14 @@ export const SkillsFormSchema = z.object({
   /** Un logro ("XP obtenida") por línea — opcional. */
   achievements: z.string().optional(),
   unlocked: z.boolean(),
+  labelEn: z.string().optional(),
+  descriptionEn: z.string().optional(),
+  achievementsEn: z.string().optional(),
 });
 
 export type SkillsFormValues = z.infer<typeof SkillsFormSchema>;
 
-/** Convierte los valores validados del formulario a la forma de `SkillNode` (Deméter). */
+/** Convierte los valores validados del formulario a la forma de `SkillNodeUpsertInput` (Deméter). */
 export function toSkillNodeInput(values: SkillsFormValues) {
   return {
     id: values.id,
@@ -35,5 +41,13 @@ export function toSkillNodeInput(values: SkillsFormValues) {
           .filter((line) => line.length > 0)
       : undefined,
     unlocked: values.unlocked,
+    labelEn: values.labelEn,
+    descriptionEn: values.descriptionEn,
+    achievementsEn: values.achievementsEn
+      ? values.achievementsEn
+          .split("\n")
+          .map((line) => line.trim())
+          .filter((line) => line.length > 0)
+      : undefined,
   };
 }

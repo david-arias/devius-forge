@@ -18,12 +18,22 @@ import { deleteQuestAction, duplicateQuestAction, saveQuestAction } from "@/lib/
 import { initialActionState } from "@/lib/minerva/actions/action-state";
 import { useAdminToastStore } from "@/lib/minerva/admin-toast-store";
 import { type Quest } from "@/lib/demeter/schemas";
+import { type QuestEnDraft } from "@/lib/demeter/queries/quests";
 import { cn } from "@/lib/utils";
 import { QuestFormSchema, type QuestFormValues } from "./quest-form-schema";
 
 interface QuestFormProps {
   /** Valores iniciales de UNA Quest — hoy viene de `getQuests({ includeDrafts: true })` (Deméter). */
   initialValues?: Quest;
+  /**
+   * Borrador de traducción EN — Iteración 32 ("i18n Absoluto"), fix de la
+   * precarga que la Iteración 31 dejó pendiente. Viene de
+   * `getQuestsRaw()` + `extractQuestEnDraft()` (`quests.ts`), resuelto
+   * por `/admin/quests` (vía `QuestsManager`) a partir de la MISMA fila
+   * cruda que `initialValues` — no es un fetch aparte. `undefined` en la
+   * Quest "Nueva" (no hay nada que precargar todavía).
+   */
+  initialValuesEn?: QuestEnDraft;
   /**
    * Iteración 17 ("Escalabilidad del CMS", Hefesto — "Layout de
    * Acordeón"): cuando es `true` (y hay `initialValues`), la tarjeta
@@ -65,7 +75,7 @@ interface QuestFormProps {
  *    `ConfirmDialog` antes de tocar la base.
  *  - Toasts de éxito/error vía `useAdminToastStore` en las 3 acciones.
  */
-export function QuestForm({ initialValues, collapsible = false, dragHandle }: QuestFormProps) {
+export function QuestForm({ initialValues, initialValuesEn, collapsible = false, dragHandle }: QuestFormProps) {
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(
     initialValues?.media?.type === "image" ? initialValues.media.src : null
   );
@@ -103,21 +113,17 @@ export function QuestForm({ initialValues, collapsible = false, dragHandle }: Qu
       uxProcess: initialValues?.caseStudy.uxProcess ?? "",
       uiSolution: initialValues?.caseStudy.uiSolution ?? "",
       impact: initialValues?.caseStudy.impact ?? "",
-      // Iteración 31 (i18n): sin fuente propia todavía en `Quest` (el
-      // dominio de LECTURA sólo expone el contenido YA resuelto en un
-      // idioma, ver `mapSupabaseQuestRow`) — el formulario siempre
-      // arranca con las traducciones vacías; si ya existen en Supabase,
-      // se pierden al reabrir el formulario hasta que se re-carguen acá.
-      // Documentado como pendiente en `handoff.md` (Iteración 31):
-      // requeriría que `QuestUpsertInput`/`initialValues` viajen con las
-      // columnas `_en` crudas además del valor ya resuelto.
-      titleEn: "",
-      summaryEn: "",
-      roleEn: "",
-      problemEn: "",
-      uxProcessEn: "",
-      uiSolutionEn: "",
-      impactEn: "",
+      // Iteración 32 (i18n) — fix de la precarga: `initialValuesEn` trae
+      // las traducciones existentes desde `getQuestsRaw()` (ver el
+      // docblock de la prop más arriba); en la Quest "Nueva" no hay
+      // `initialValuesEn`, así que cada campo cae a `""` como antes.
+      titleEn: initialValuesEn?.titleEn ?? "",
+      summaryEn: initialValuesEn?.summaryEn ?? "",
+      roleEn: initialValuesEn?.roleEn ?? "",
+      problemEn: initialValuesEn?.problemEn ?? "",
+      uxProcessEn: initialValuesEn?.uxProcessEn ?? "",
+      uiSolutionEn: initialValuesEn?.uiSolutionEn ?? "",
+      impactEn: initialValuesEn?.impactEn ?? "",
     },
   });
 

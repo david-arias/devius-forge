@@ -18,6 +18,10 @@ function parseFormData(formData: FormData) {
     // Los checkboxes desmarcados no se incluyen en un `FormData` nativo —
     // `formData.get("unlocked")` da `null` en vez de `"off"`.
     unlocked: formData.get("unlocked") === "on",
+    // Iteración 32 (i18n) — traducciones EN, todas opcionales (ver `SkillsFormSchema`).
+    labelEn: String(formData.get("labelEn") ?? ""),
+    descriptionEn: String(formData.get("descriptionEn") ?? ""),
+    achievementsEn: String(formData.get("achievementsEn") ?? ""),
   };
 }
 

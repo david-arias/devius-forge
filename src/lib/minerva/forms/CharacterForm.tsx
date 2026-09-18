@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { type BaseSyntheticEvent, useActionState, useEffect } from "react";
+import { type BaseSyntheticEvent, useActionState, useEffect, useState } from "react";
 import Image from "next/image";
 import { ImageIcon, Trash2 } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -11,11 +11,15 @@ import { saveCharacterAction } from "@/lib/minerva/actions/character-actions";
 import { initialActionState } from "@/lib/minerva/actions/action-state";
 import { useAdminToastStore } from "@/lib/minerva/admin-toast-store";
 import { type Character } from "@/lib/demeter/schemas";
+import { type CharacterEnDraft } from "@/lib/demeter/queries/character";
+import { cn } from "@/lib/utils";
 import { CharacterFormSchema, type CharacterFormValues } from "./character-form-schema";
 
 interface CharacterFormProps {
   /** Valores iniciales — hoy viene de `getCharacter()` (Deméter). */
   initialValues?: Character;
+  /** Borrador de traducción EN — Iteración 32 ("i18n Absoluto"), viene de `getCharacterEnDraft()` (Deméter). */
+  initialValuesEn?: CharacterEnDraft;
 }
 
 /**
@@ -26,8 +30,12 @@ interface CharacterFormProps {
  * Character Sheet no es una colección — no hay nada que duplicar ni
  * eliminar, sólo editar la ficha existente.
  */
-export function CharacterForm({ initialValues }: CharacterFormProps) {
+export function CharacterForm({ initialValues, initialValuesEn }: CharacterFormProps) {
   const pushToast = useAdminToastStore((state) => state.push);
+  // Iteración 32 (Hefesto, i18n) — mismo toggle ES/EN que `QuestForm.tsx`;
+  // ver ahí el docblock. Sólo afecta a `characterClass`/`tagline`/`bio`
+  // (los 3 campos traducibles) — `name`/`heroImageUrl` son idioma-agnósticos.
+  const [formLang, setFormLang] = useState<"es" | "en">("es");
 
   const {
     register,
@@ -43,6 +51,9 @@ export function CharacterForm({ initialValues }: CharacterFormProps) {
       tagline: initialValues?.tagline ?? "",
       bio: initialValues?.bio.join("\n") ?? "",
       heroImageUrl: initialValues?.heroImageUrl ?? "",
+      characterClassEn: initialValuesEn?.characterClassEn ?? "",
+      taglineEn: initialValuesEn?.taglineEn ?? "",
+      bioEn: initialValuesEn?.bioEn ?? "",
     },
   });
 
@@ -78,6 +89,35 @@ export function CharacterForm({ initialValues }: CharacterFormProps) {
         className="flex flex-col gap-5"
         noValidate
       >
+        {/* Iteración 32 (Hefesto, i18n) — mismo patrón de `QuestForm.tsx`. */}
+        <div className="flex items-center gap-1 self-start rounded-lg border border-white/10 bg-obsidian/60 p-1 text-xs font-semibold">
+          <button
+            type="button"
+            onClick={() => setFormLang("es")}
+            aria-pressed={formLang === "es"}
+            className={cn(
+              "rounded-md px-3 py-1 transition-colors duration-150",
+              formLang === "es" ? "bg-emerald-glow/20 text-emerald-glow" : "text-parchment-muted hover:text-parchment"
+            )}
+          >
+            Español
+          </button>
+          <button
+            type="button"
+            onClick={() => setFormLang("en")}
+            aria-pressed={formLang === "en"}
+            className={cn(
+              "rounded-md px-3 py-1 transition-colors duration-150",
+              formLang === "en" ? "bg-emerald-glow/20 text-emerald-glow" : "text-parchment-muted hover:text-parchment"
+            )}
+          >
+            English
+          </button>
+          <span className="px-2 text-[0.65rem] font-normal normal-case text-parchment-muted/70">
+            {formLang === "en" ? "Campos opcionales — vacío = usa el valor en español" : "Contenido base (obligatorio)"}
+          </span>
+        </div>
+
         <div className="flex flex-col gap-1.5">
           <label htmlFor="name" className="text-sm font-medium text-parchment">
             Nombre
@@ -94,7 +134,7 @@ export function CharacterForm({ initialValues }: CharacterFormProps) {
           )}
         </div>
 
-        <div className="flex flex-col gap-1.5">
+        <div hidden={formLang !== "es"} className="flex flex-col gap-1.5">
           <label htmlFor="characterClass" className="text-sm font-medium text-parchment">
             Clase (p.ej. &quot;Hybrid Forgemaster&quot;)
           </label>
@@ -109,8 +149,19 @@ export function CharacterForm({ initialValues }: CharacterFormProps) {
             </p>
           )}
         </div>
+        <div hidden={formLang !== "en"} className="flex flex-col gap-1.5">
+          <label htmlFor="characterClassEn" className="text-sm font-medium text-parchment">
+            Class (EN)
+          </label>
+          <input
+            id="characterClassEn"
+            {...register("characterClassEn")}
+            placeholder="Untranslated — falls back to the Spanish class"
+            className="rounded-md border border-white/10 bg-obsidian/60 px-3 py-2 text-sm text-parchment focus-visible:border-gold-glow/50"
+          />
+        </div>
 
-        <div className="flex flex-col gap-1.5">
+        <div hidden={formLang !== "es"} className="flex flex-col gap-1.5">
           <label htmlFor="tagline" className="text-sm font-medium text-parchment">
             Tagline (exclusivo del Hero)
           </label>
@@ -125,8 +176,19 @@ export function CharacterForm({ initialValues }: CharacterFormProps) {
             </p>
           )}
         </div>
+        <div hidden={formLang !== "en"} className="flex flex-col gap-1.5">
+          <label htmlFor="taglineEn" className="text-sm font-medium text-parchment">
+            Tagline (EN)
+          </label>
+          <input
+            id="taglineEn"
+            {...register("taglineEn")}
+            placeholder="Untranslated — falls back to the Spanish tagline"
+            className="rounded-md border border-white/10 bg-obsidian/60 px-3 py-2 text-sm text-parchment focus-visible:border-gold-glow/50"
+          />
+        </div>
 
-        <div className="flex flex-col gap-1.5">
+        <div hidden={formLang !== "es"} className="flex flex-col gap-1.5">
           <label htmlFor="bio" className="text-sm font-medium text-parchment">
             Bio (un párrafo por línea — exclusivo del Character Sheet)
           </label>
@@ -141,6 +203,18 @@ export function CharacterForm({ initialValues }: CharacterFormProps) {
               {errors.bio.message}
             </p>
           )}
+        </div>
+        <div hidden={formLang !== "en"} className="flex flex-col gap-1.5">
+          <label htmlFor="bioEn" className="text-sm font-medium text-parchment">
+            Bio (EN, one paragraph per line)
+          </label>
+          <textarea
+            id="bioEn"
+            rows={6}
+            {...register("bioEn")}
+            placeholder="Untranslated — falls back to the Spanish bio"
+            className="rounded-md border border-white/10 bg-obsidian/60 px-3 py-2 text-sm text-parchment focus-visible:border-gold-glow/50"
+          />
         </div>
 
         <fieldset className="flex flex-col gap-3 rounded-lg border border-white/10 bg-obsidian/40 p-4">

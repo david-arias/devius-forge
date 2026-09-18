@@ -1,19 +1,17 @@
 /**
- * Diccionario ES — Minerva, Iteración 31 ("Expansión Global"). Textos
- * ESTÁTICOS de la UI (los que Hefesto escribe en el JSX, no los que
- * vienen de Supabase — esos los traduce Deméter, ver `_en` en
- * `009_i18n.sql`). Se consume con `useTranslation()`
- * (`lib/i18n/use-translation.ts`), nunca importando este archivo directo
- * desde un componente — así el día que se agregue un tercer idioma sólo
- * hace falta un archivo nuevo + una entrada en `dictionaries`.
+ * Diccionario ES — Minerva/Apolo, Iteración 31 ("Expansión Global"),
+ * completado en la 32 ("i18n Absoluto"). Textos ESTÁTICOS de la UI (los
+ * que Hefesto escribe en el JSX, no los que vienen de Supabase — esos
+ * los traduce Deméter, ver `_en` en `009_i18n.sql`). Se consume con
+ * `useTranslation()` (componentes cliente) o `getTranslations()`
+ * (Server Components, `lib/i18n/get-translations.ts`) — nunca
+ * importando este archivo directo desde un componente.
  *
- * Alcance de esta Iteración (documentado también en `handoff.md`): cubre
- * el toggle de idioma, la Command Palette, y el Footer/EmptyState como
- * ejemplos "insignia" — el resto de la copy estática del sitio (Hero,
- * CharacterSheet, SkillTree, Inventory, etc.) sigue hardcodeada en
- * español directo en sus componentes, igual que antes de esta iteración.
- * Extenderla es mecánico: agregar la clave acá + en `en.ts`, y reemplazar
- * el string hardcodeado por `t("clave")` en el componente.
+ * Iteración 32: cobertura ampliada a Hero, Character Sheet, Skill Tree
+ * (incl. `SkillTreeTimeline`), Inventory y el formulario de contacto del
+ * Footer — el resto de la copy (admin/CMS, textos de logros/telemetría)
+ * sigue en español directo, fuera del alcance pedido ("copy estática del
+ * SITIO PÚBLICO").
  */
 export interface Dictionary {
   language: {
@@ -53,6 +51,66 @@ export interface Dictionary {
   emptyState: {
     genericTitle: string;
     genericDescription: string;
+  };
+  hero: {
+    availableBadge: string;
+    helloPrefix: (name: string) => string;
+    startQuestCta: string;
+    downloadCta: string;
+    scrollLabel: string;
+    homeLabel: string;
+    emptyNotice: string;
+    forgeEmptyTitle: string;
+  };
+  characterSheet: {
+    eyebrow: string;
+    emptyTitle: string;
+    emptyDescription: string;
+    uxuiTitle: string;
+    uxuiDescription: string;
+    frontendTitle: string;
+    frontendDescription: string;
+  };
+  skillTree: {
+    eyebrow: string;
+    emptyTitle: string;
+    emptyDescription: string;
+    nodePrefix: (num: string) => string;
+    lockedSuffix: string;
+    xpBadge: string;
+  };
+  inventory: {
+    eyebrow: string;
+    emptyTitle: string;
+    emptyDescription: string;
+    groups: {
+      frontend: string;
+      design: string;
+      animation: string;
+      backend: string;
+      devops: string;
+      tools: string;
+    };
+  };
+  questShowcase: {
+    eyebrow: string;
+    emptyTitle: string;
+    emptyDescription: string;
+  };
+  contactForm: {
+    ariaLabel: string;
+    nameLabel: string;
+    namePlaceholder: string;
+    emailLabel: string;
+    emailPlaceholder: string;
+    messageLabel: string;
+    messagePlaceholder: string;
+    responseTime: string;
+    submitIdle: string;
+    submitPending: string;
+    toastSuccessTitle: string;
+    toastErrorTitle: string;
+    closeNotification: string;
   };
 }
 
@@ -94,5 +152,65 @@ export const es: Dictionary = {
   emptyState: {
     genericTitle: "La forja está vacía",
     genericDescription: "Todavía no hay contenido publicado acá — volvé pronto.",
+  },
+  hero: {
+    availableBadge: "Disponible para nuevas quests",
+    helloPrefix: (name: string) => `Hola, soy ${name}`,
+    startQuestCta: "Iniciar Quest",
+    downloadCta: "Descargar CV",
+    scrollLabel: "Scroll",
+    homeLabel: "Inicio",
+    emptyNotice: "El Character Sheet todavía no tiene datos. Completalo desde el panel para encender el Hero.",
+    forgeEmptyTitle: "La forja\nestá vacía",
+  },
+  characterSheet: {
+    eyebrow: "Personaje",
+    emptyTitle: "El pergamino está en blanco",
+    emptyDescription: "Esta ficha todavía no fue escrita. Pronto vas a encontrar acá la historia detrás de la forja.",
+    uxuiTitle: "UX/UI Design",
+    uxuiDescription: "Investigo, itero y valido con research y prototipado antes de que exista una sola línea de código.",
+    frontendTitle: "Frontend Engineering",
+    frontendDescription: "Convierto cada decisión de diseño en interfaces reales: performantes, animadas y accesibles.",
+  },
+  skillTree: {
+    eyebrow: "Progresión",
+    emptyTitle: "El árbol aún no tiene ramas",
+    emptyDescription: "La progresión profesional se está documentando. Volvé pronto para ver cada nodo desbloqueado.",
+    nodePrefix: (num: string) => `Nodo ${num}`,
+    lockedSuffix: " · Bloqueado",
+    xpBadge: "+XP",
+  },
+  inventory: {
+    eyebrow: "Equipo",
+    emptyTitle: "El inventario está vacío",
+    emptyDescription: "Las armas y artefactos de esta forja todavía se están catalogando.",
+    groups: {
+      frontend: "Armas Principales",
+      design: "Artefactos de Diseño",
+      animation: "Magia / Animación",
+      backend: "Artefactos de Backend",
+      devops: "Herramientas de Campamento",
+      tools: "Herramientas",
+    },
+  },
+  questShowcase: {
+    eyebrow: "Bitácora",
+    emptyTitle: "La forja está vacía",
+    emptyDescription: "Los próximos casos de estudio se están templando. Cada Quest publicada aparecerá acá.",
+  },
+  contactForm: {
+    ariaLabel: "Formulario de contacto",
+    nameLabel: "Nombre",
+    namePlaceholder: "Tu nombre",
+    emailLabel: "Correo",
+    emailPlaceholder: "tu@correo.com",
+    messageLabel: "Mensaje",
+    messagePlaceholder: "Contame sobre tu próxima Quest…",
+    responseTime: "Respondo en menos de 48 h. Sin spam, nunca.",
+    submitIdle: "Enviar mensaje",
+    submitPending: "Forjando…",
+    toastSuccessTitle: "¡Mensaje forjado!",
+    toastErrorTitle: "La forja se enfrió",
+    closeNotification: "Cerrar notificación",
   },
 };

@@ -7,7 +7,23 @@ import { SkillNodeSchema, type SkillNode } from "../schemas";
  * comentario largo en `quests.mutations.ts` para el porqué.
  */
 
-function toRow(input: SkillNode) {
+/** `SkillNode` (dominio de LECTURA) + las traducciones EN que `SkillsForm` edita — ver `toSkillNodeInput()` en `skills-form-schema.ts`. */
+export type SkillNodeUpsertInput = SkillNode & {
+  labelEn?: string;
+  descriptionEn?: string;
+  achievementsEn?: string[];
+};
+
+/** `""`/`[]` (valor por defecto de un formulario sin completar) → `null` — mismo criterio que `emptyToNull` en `quests.mutations.ts`. */
+function emptyToNull(value: string | undefined): string | null {
+  return value && value.trim().length > 0 ? value : null;
+}
+
+function arrayEmptyToNull(value: string[] | undefined): string[] | null {
+  return value && value.length > 0 ? value : null;
+}
+
+function toRow(input: SkillNodeUpsertInput) {
   return {
     id: input.id,
     label: input.label,
@@ -15,10 +31,14 @@ function toRow(input: SkillNode) {
     description: input.description,
     achievements: input.achievements ?? [],
     unlocked: input.unlocked,
+    // Iteración 32 (i18n) — columnas hermanas en inglés, ver `009_i18n.sql`.
+    label_en: emptyToNull(input.labelEn),
+    description_en: emptyToNull(input.descriptionEn),
+    achievements_en: arrayEmptyToNull(input.achievementsEn),
   };
 }
 
-export async function upsertSkillNode(input: SkillNode): Promise<void> {
+export async function upsertSkillNode(input: SkillNodeUpsertInput): Promise<void> {
   const supabase = await createServerSupabaseClient();
   const { error } = await supabase.from("skill_tree").upsert(toRow(input), { onConflict: "id" });
   if (error) throw new Error(`No se pudo guardar el nodo: ${error.message}`);

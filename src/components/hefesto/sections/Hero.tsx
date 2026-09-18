@@ -8,6 +8,7 @@ import { type Character } from "@/lib/demeter/schemas";
 import { Button, Magnetic, RevealText } from "@/components/hefesto/ui";
 import { useAchievementsStore } from "@/lib/minerva/achievements-store";
 import { trackForgeEvent } from "@/lib/minerva/telemetry";
+import { useTranslation } from "@/lib/i18n/use-translation";
 
 interface HeroProps {
   /** `null` = el Character Sheet todavía no existe en Supabase (estado vacío). */
@@ -86,6 +87,7 @@ export function Hero({ character, tags = [], ctaHref, resumeHref }: HeroProps) {
   const reduce = useReducedMotion();
   const unlock = useAchievementsStore((state) => state.unlock);
   const unlockCallToAdventure = () => unlock("call-to-adventure");
+  const { t } = useTranslation();
 
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start start", "end start"] });
   const wordY = useTransform(scrollYProgress, [0, 1], ["0%", "45%"]);
@@ -103,14 +105,14 @@ export function Hero({ character, tags = [], ctaHref, resumeHref }: HeroProps) {
   // palabra más larga (≈0.76em por letra en Cinzel Black) para el ancho de
   // la columna: ~90vw en mobile, ~56vw (8/12 columnas) en desktop.
   const longestWord = Math.max(
-    ...(character?.characterClass ?? "La forja está vacía").split(/\s+/).map((w) => w.length),
+    ...(character?.characterClass ?? t.hero.forgeEmptyTitle.replace(/\n/g, " ")).split(/\s+/).map((w) => w.length),
     4
   );
   const titleSizeVars = {
     "--title-sm": `clamp(2.25rem, ${Math.min(14, 90 / (longestWord * 0.76)).toFixed(2)}vw, 9rem)`,
     "--title-lg": `clamp(3rem, ${Math.min(10, 56 / (longestWord * 0.76)).toFixed(2)}vw, 9rem)`,
   } as CSSProperties;
-  const titleLines = character ? character.characterClass.trim().split(/\s+/).join("\n") : "La forja\nestá vacía";
+  const titleLines = character ? character.characterClass.trim().split(/\s+/).join("\n") : t.hero.forgeEmptyTitle;
 
   return (
     <section
@@ -230,7 +232,7 @@ export function Hero({ character, tags = [], ctaHref, resumeHref }: HeroProps) {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-glow/60" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-glow" />
             </span>
-            Disponible para nuevas quests
+            {t.hero.availableBadge}
           </motion.p>
 
           {character?.tagline && (
@@ -253,7 +255,7 @@ export function Hero({ character, tags = [], ctaHref, resumeHref }: HeroProps) {
           <motion.div style={foregroundStyle} className="relative z-20 mix-blend-difference lg:col-span-8">
             <p className="mb-4 flex items-center gap-3 text-xs uppercase tracking-[0.35em] text-emerald-glow">
               <span aria-hidden className="h-px w-10 bg-emerald-glow/50" />
-              {character ? `Hola, soy ${name}` : name}
+              {character ? t.hero.helloPrefix(name) : name}
             </p>
             <h1
               className="font-display font-black uppercase leading-[0.86] tracking-[-0.02em] text-parchment"
@@ -277,7 +279,7 @@ export function Hero({ character, tags = [], ctaHref, resumeHref }: HeroProps) {
           >
             {!character && (
               <p className="max-w-xs text-sm leading-relaxed text-parchment-muted lg:text-right">
-                El Character Sheet todavía no tiene datos. Completalo desde el panel para encender el Hero.
+                {t.hero.emptyNotice}
               </p>
             )}
 
@@ -293,7 +295,7 @@ export function Hero({ character, tags = [], ctaHref, resumeHref }: HeroProps) {
                     <a href={ctaHref} onClick={unlockCallToAdventure}>
                       <Button variant="cta" className="gap-2 px-6 py-3">
                         <Swords className="h-4 w-4" aria-hidden />
-                        Iniciar Quest
+                        {t.hero.startQuestCta}
                       </Button>
                     </a>
                   </Magnetic>
@@ -310,7 +312,7 @@ export function Hero({ character, tags = [], ctaHref, resumeHref }: HeroProps) {
                     >
                       <Button variant="secondary" className="gap-2 bg-obsidian/60 px-6 py-3 backdrop-blur-md">
                         <Download className="h-4 w-4" aria-hidden />
-                        Descargar CV
+                        {t.hero.downloadCta}
                       </Button>
                     </a>
                   </Magnetic>
@@ -328,13 +330,13 @@ export function Hero({ character, tags = [], ctaHref, resumeHref }: HeroProps) {
           <span className="flex items-center gap-3">
             <span className="tabular-nums text-parchment">01</span>
             <span aria-hidden className="h-px w-10 bg-white/20" />
-            Inicio
+            {t.hero.homeLabel}
           </span>
           <a
             href="#quests"
             className="flex items-center gap-2 rounded-full px-2 py-1 transition-colors hover:text-parchment"
           >
-            Scroll
+            {t.hero.scrollLabel}
             <motion.span
               aria-hidden
               animate={reduce ? undefined : { y: [0, 4, 0] }}

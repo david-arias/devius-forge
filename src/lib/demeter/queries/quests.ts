@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { getSupabaseClient } from "@/lib/supabase/client";
-import { mapSupabaseQuestRow, SupabaseQuestRowSchema, type Locale } from "@/lib/supabase/schema";
+import { mapSupabaseQuestRow, SupabaseQuestRowSchema, type Locale, type SupabaseQuestRow } from "@/lib/supabase/schema";
 import { QuestSchema, type Quest } from "../schemas";
 
 /**
@@ -84,6 +84,55 @@ export async function getQuests(options?: { includeDrafts?: boolean; locale?: Lo
   const quests = QuestSchema.array().parse(rows.map((row) => mapSupabaseQuestRow(row, options?.locale ?? "es")));
   if (options?.includeDrafts) return quests;
   return quests.filter((quest) => quest.isPublished);
+}
+
+/**
+ * `getQuestsRaw()` — Deméter, Iteración 32 ("i18n Absoluto"). Devuelve
+ * las filas CRUDAS (con sus columnas `_en`), sin resolver ningún idioma
+ * — a diferencia de `getQuests()`, pensado para el sitio público.
+ *
+ * Motivo (fix de la Iteración 31, "el formulario no precarga las
+ * traducciones al reabrir una Quest"): `Quest` (el tipo de dominio de
+ * LECTURA) sólo puede representar un idioma a la vez — es lo que
+ * necesita el sitio público, nunca los dos juntos. El CMS (`QuestForm`)
+ * sí necesita los dos a la vez para poder editarlos en el mismo
+ * formulario. En vez de forzar esa necesidad adentro de `Quest` (lo que
+ * filtraría el detalle de i18n a cada consumidor público del dominio),
+ * se resuelve acá: `/admin/quests` usa esta función en vez de
+ * `getQuests()`, y arma tanto el `Quest` en español (con
+ * `mapSupabaseQuestRow(row, "es")`, igual que antes) como el borrador en
+ * inglés (`extractQuestEnDraft(row)`, ver abajo) a partir de la MISMA
+ * fila — ambos leen la misma entrada de caché, no hay doble fetch.
+ */
+export async function getQuestsRaw(options?: { includeDrafts?: boolean }): Promise<SupabaseQuestRow[]> {
+  const raw = await getCachedQuestsRaw();
+  const rows = SupabaseQuestRowSchema.array().parse(raw);
+  if (options?.includeDrafts) return rows;
+  return rows.filter((row) => row.is_published);
+}
+
+/** Borrador de traducción EN de una Quest, tal como lo edita `QuestForm` — ver `getQuestsRaw()`. */
+export interface QuestEnDraft {
+  titleEn: string;
+  summaryEn: string;
+  roleEn: string;
+  problemEn: string;
+  uxProcessEn: string;
+  uiSolutionEn: string;
+  impactEn: string;
+}
+
+/** Extrae el borrador EN (strings vacíos para lo que todavía no está traducido) de una fila cruda. */
+export function extractQuestEnDraft(row: SupabaseQuestRow): QuestEnDraft {
+  return {
+    titleEn: row.title_en ?? "",
+    summaryEn: row.summary_en ?? "",
+    roleEn: row.role_en ?? "",
+    problemEn: row.case_study_en?.problem ?? "",
+    uxProcessEn: row.case_study_en?.ux_process ?? "",
+    uiSolutionEn: row.case_study_en?.ui_solution ?? "",
+    impactEn: row.case_study_en?.impact ?? "",
+  };
 }
 
 /**

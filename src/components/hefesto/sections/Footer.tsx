@@ -8,9 +8,20 @@ import {
   PrintModeToggle,
   RevealText,
 } from "@/components/hefesto/ui";
+import type { Dictionary } from "@/lib/i18n/locales/es";
 
 interface FooterProps {
   navigation: Navigation;
+  /**
+   * Textos estáticos del Footer — Iteración 32 (i18n). `Footer` vive
+   * dentro de `SiteChrome` ("use client"), así que no puede llamar a
+   * `getTranslations()` (server-only, `next/headers`) directamente: eso
+   * rompería el bundle de cliente. En vez de eso, `layout.tsx` (Server
+   * Component) resuelve el diccionario UNA vez y pasa sólo la porción
+   * `footer` — un objeto plano de strings, serializable a través del
+   * límite servidor→cliente — hacia abajo por `SiteChrome`.
+   */
+  t: Dictionary["footer"];
 }
 
 /**
@@ -26,7 +37,7 @@ interface FooterProps {
  * (`ContactForm`, `FooterContactActions`, `AchievementScrollTrigger`,
  * `RevealText`) son hijos `"use client"`.
  */
-export function Footer({ navigation }: FooterProps) {
+export function Footer({ navigation, t }: FooterProps) {
   const emailLink = navigation.socialLinks.find((link) => link.kind === "email");
   const rawEmail = emailLink?.href.replace(/^mailto:/, "");
   const year = new Date().getFullYear();
@@ -47,18 +58,17 @@ export function Footer({ navigation }: FooterProps) {
           <p className="mb-4 flex items-center gap-3 text-xs uppercase tracking-[0.3em] text-emerald-glow">
             <span className="tabular-nums text-parchment-muted">06</span>
             <span aria-hidden className="h-px w-8 bg-emerald-glow/50" />
-            Contacto
+            {t.sectionLabel}
           </p>
           <RevealText
             as="h2"
             trigger="inView"
-            text={"Hablemos de tu\npróxima Quest"}
+            text={t.heading}
             split="lines"
             className="font-display text-4xl leading-[1.05] text-parchment sm:text-5xl"
           />
           <p className="mt-6 max-w-sm leading-relaxed text-parchment/60">
-            ¿Un producto que necesita diseño y código en la misma mano? Contame la idea — la forja está
-            encendida.
+            {t.tagline}
           </p>
 
           {emailLink && rawEmail && (
@@ -86,7 +96,7 @@ export function Footer({ navigation }: FooterProps) {
               aria-hidden
               className="pointer-events-none absolute inset-x-10 -top-px h-px bg-gradient-to-r from-transparent via-gold-glow/60 to-transparent"
             />
-            <h3 className="mb-6 font-display text-lg text-parchment">Enviar un pergamino</h3>
+            <h3 className="mb-6 font-display text-lg text-parchment">{t.formHeading}</h3>
             <ContactForm />
           </div>
         </div>
@@ -100,7 +110,7 @@ export function Footer({ navigation }: FooterProps) {
             {/* Iteración 30 (Hades/Hefesto) — Eco/Premium, ver `print-mode-store.ts`. */}
             <PrintModeToggle className="print:hidden" />
             <Link href="/#home" className="rounded px-1 transition-colors hover:text-parchment">
-              Volver arriba ↑
+              {t.backToTop}
             </Link>
           </div>
         </div>

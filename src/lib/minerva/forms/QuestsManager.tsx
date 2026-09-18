@@ -20,11 +20,14 @@ import { DragHandle, SearchInput, SortableItem } from "@/components/hefesto/ui";
 import { updateQuestsOrderAction } from "@/lib/minerva/actions/quest-actions";
 import { useAdminToastStore } from "@/lib/minerva/admin-toast-store";
 import { type Quest } from "@/lib/demeter/schemas";
+import { type QuestEnDraft } from "@/lib/demeter/queries/quests";
 import { QuestForm } from "./QuestForm";
 
 interface QuestsManagerProps {
-  /** Quests ya ordenadas por `sort_order` — viene de `getQuests({ includeDrafts: true })` (Deméter). */
+  /** Quests ya ordenadas por `sort_order` — viene de `getQuestsRaw({ includeDrafts: true })` (Deméter, ver `/admin/quests/page.tsx`). */
   quests: Quest[];
+  /** Iteración 32 (i18n) — borrador EN por id de Quest, misma fuente que `quests` (una sola lectura cruda). */
+  enDrafts: Record<string, QuestEnDraft>;
 }
 
 /**
@@ -51,7 +54,7 @@ interface QuestsManagerProps {
  * `SortableItem`/`DragHandle`): reordenar un subconjunto filtrado no
  * tiene una posición "correcta" no ambigua dentro de la lista completa.
  */
-export function QuestsManager({ quests: initialQuests }: QuestsManagerProps) {
+export function QuestsManager({ quests: initialQuests, enDrafts }: QuestsManagerProps) {
   const [quests, setQuests] = useState(initialQuests);
   const [query, setQuery] = useState("");
   const [, startTransition] = useTransition();
@@ -108,6 +111,7 @@ export function QuestsManager({ quests: initialQuests }: QuestsManagerProps) {
                 {({ attributes, listeners }) => (
                   <QuestForm
                     initialValues={quest}
+                    initialValuesEn={enDrafts[quest.id]}
                     collapsible
                     dragHandle={
                       <DragHandle

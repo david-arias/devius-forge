@@ -6,6 +6,8 @@ import { Backpack } from "lucide-react";
 import { EmptyState, LevelRing, SectionHeading, StaggerReveal, TiltCard } from "@/components/hefesto/ui";
 import { fadeInUp } from "@/lib/hefesto/motion";
 import { useAchievementsStore } from "@/lib/minerva/achievements-store";
+import { useTranslation } from "@/lib/i18n/use-translation";
+import type { Dictionary } from "@/lib/i18n/locales/es";
 
 interface InventoryProps {
   items: InventoryItem[];
@@ -16,13 +18,21 @@ interface InventoryProps {
  * `category` en Deméter es neutral a propósito — este mapeo (etiqueta +
  * color del anillo) es sólo cómo Hefesto decide mostrarlo con sabor Dark RPG.
  */
-const GROUP_META: Partial<Record<InventoryItem["category"], { label: string; order: number; color: string }>> = {
-  frontend: { label: "Armas Principales", order: 0, color: "#34d399" },
-  design: { label: "Artefactos de Diseño", order: 1, color: "#e8c468" },
-  animation: { label: "Magia / Animación", order: 2, color: "#7dd3fc" },
-  backend: { label: "Artefactos de Backend", order: 3, color: "#a8a5b0" },
-  devops: { label: "Herramientas de Campamento", order: 4, color: "#a8a5b0" },
-  tools: { label: "Herramientas", order: 5, color: "#a8a5b0" },
+/**
+ * Iteración 32 (i18n): las etiquetas de grupo ya NO son un string fijo —
+ * `label` es una función `(t: Dictionary) => string` que lee del
+ * diccionario activo (`t.inventory.groups.*`), resuelta recién adentro
+ * del componente (que sí puede llamar a `useTranslation()`).
+ */
+const GROUP_META: Partial<
+  Record<InventoryItem["category"], { label: (t: Dictionary) => string; order: number; color: string }>
+> = {
+  frontend: { label: (t) => t.inventory.groups.frontend, order: 0, color: "#34d399" },
+  design: { label: (t) => t.inventory.groups.design, order: 1, color: "#e8c468" },
+  animation: { label: (t) => t.inventory.groups.animation, order: 2, color: "#7dd3fc" },
+  backend: { label: (t) => t.inventory.groups.backend, order: 3, color: "#a8a5b0" },
+  devops: { label: (t) => t.inventory.groups.devops, order: 4, color: "#a8a5b0" },
+  tools: { label: (t) => t.inventory.groups.tools, order: 5, color: "#a8a5b0" },
 };
 
 function groupItems(items: InventoryItem[]) {
@@ -45,17 +55,18 @@ function groupItems(items: InventoryItem[]) {
  */
 export function Inventory({ items }: InventoryProps) {
   const groups = groupItems(items);
+  const { t } = useTranslation();
   const unlock = useAchievementsStore((state) => state.unlock);
   const unlockWeaponInspection = () => unlock("weapon-inspection");
 
   return (
     <section id="inventario" className="mx-auto max-w-6xl scroll-mt-24 px-4 py-20 sm:px-8 sm:py-28">
-      <SectionHeading index="05" eyebrow="Equipo" title="Inventario" />
+      <SectionHeading index="05" eyebrow={t.inventory.eyebrow} title="Inventario" />
       {items.length === 0 && (
         <EmptyState
           icon={Backpack}
-          title="El inventario está vacío"
-          description="Las armas y artefactos de esta forja todavía se están catalogando."
+          title={t.inventory.emptyTitle}
+          description={t.inventory.emptyDescription}
         />
       )}
       <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
@@ -64,7 +75,7 @@ export function Inventory({ items }: InventoryProps) {
           return (
             <div key={category}>
               <p className="mb-5 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-gold-glow/80">
-                {meta?.label ?? category}
+                {meta ? meta.label(t) : category}
               </p>
               <StaggerReveal className="grid grid-cols-2 gap-3 min-[420px]:grid-cols-3 sm:grid-cols-2">
                 {categoryItems.map((item) => (

@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { type BaseSyntheticEvent, type ReactNode, useActionState, useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 import { useForm } from "react-hook-form";
 import { Button, Card, ConfirmDialog, EntityActionsMenu, PreviewLink } from "@/components/hefesto/ui";
 import { initialActionState } from "@/lib/minerva/actions/action-state";
@@ -12,11 +13,14 @@ import {
 } from "@/lib/minerva/actions/skill-actions";
 import { useAdminToastStore } from "@/lib/minerva/admin-toast-store";
 import { type SkillNode } from "@/lib/demeter/schemas";
+import { type SkillNodeEnDraft } from "@/lib/demeter/queries/skill-tree";
 import { SkillsFormSchema, type SkillsFormValues } from "./skills-form-schema";
 
 interface SkillsFormProps {
   /** Valores iniciales de UN nodo — hoy viene de `getSkillTree()` (Deméter). */
   initialValues?: SkillNode;
+  /** Borrador de traducción EN — Iteración 32 ("i18n Absoluto"), viene de `getSkillTreeEnDrafts()` (Deméter). */
+  initialValuesEn?: SkillNodeEnDraft;
   /**
    * Ícono de "agarrar y arrastrar" (Iteración 17, "Escalabilidad del
    * CMS") — ya cableado a `useSortable()` por `SkillTreeManager.tsx`.
@@ -35,8 +39,10 @@ interface SkillsFormProps {
  * Duplicar/Eliminar (Eliminar detrás de `ConfirmDialog`), y Toasts de
  * éxito/error. No tiene campos de color — no aplica `ColorSwatchInput`.
  */
-export function SkillsForm({ initialValues, dragHandle }: SkillsFormProps) {
+export function SkillsForm({ initialValues, initialValuesEn, dragHandle }: SkillsFormProps) {
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  // Iteración 32 (Hefesto, i18n) — mismo toggle ES/EN que `QuestForm.tsx`.
+  const [formLang, setFormLang] = useState<"es" | "en">("es");
   const pushToast = useAdminToastStore((state) => state.push);
 
   const {
@@ -52,6 +58,9 @@ export function SkillsForm({ initialValues, dragHandle }: SkillsFormProps) {
       description: initialValues?.description ?? "",
       achievements: initialValues?.achievements?.join("\n") ?? "",
       unlocked: initialValues?.unlocked ?? true,
+      labelEn: initialValuesEn?.labelEn ?? "",
+      descriptionEn: initialValuesEn?.descriptionEn ?? "",
+      achievementsEn: initialValuesEn?.achievementsEn ?? "",
     },
   });
 
@@ -137,6 +146,35 @@ export function SkillsForm({ initialValues, dragHandle }: SkillsFormProps) {
         className="flex flex-col gap-5"
         noValidate
       >
+        {/* Iteración 32 (Hefesto, i18n) — mismo patrón de `QuestForm.tsx`. */}
+        <div className="flex items-center gap-1 self-start rounded-lg border border-white/10 bg-obsidian/60 p-1 text-xs font-semibold">
+          <button
+            type="button"
+            onClick={() => setFormLang("es")}
+            aria-pressed={formLang === "es"}
+            className={cn(
+              "rounded-md px-3 py-1 transition-colors duration-150",
+              formLang === "es" ? "bg-emerald-glow/20 text-emerald-glow" : "text-parchment-muted hover:text-parchment"
+            )}
+          >
+            Español
+          </button>
+          <button
+            type="button"
+            onClick={() => setFormLang("en")}
+            aria-pressed={formLang === "en"}
+            className={cn(
+              "rounded-md px-3 py-1 transition-colors duration-150",
+              formLang === "en" ? "bg-emerald-glow/20 text-emerald-glow" : "text-parchment-muted hover:text-parchment"
+            )}
+          >
+            English
+          </button>
+          <span className="px-2 text-[0.65rem] font-normal normal-case text-parchment-muted/70">
+            {formLang === "en" ? "Campos opcionales — vacío = usa el valor en español" : "Contenido base (obligatorio)"}
+          </span>
+        </div>
+
         <div className="flex flex-col gap-1.5">
           <label htmlFor="id" className="text-sm font-medium text-parchment">
             Id (slug único)
@@ -153,7 +191,7 @@ export function SkillsForm({ initialValues, dragHandle }: SkillsFormProps) {
           )}
         </div>
 
-        <div className="flex flex-col gap-1.5">
+        <div hidden={formLang !== "es"} className="flex flex-col gap-1.5">
           <label htmlFor="label" className="text-sm font-medium text-parchment">
             Label (título del puesto)
           </label>
@@ -168,6 +206,17 @@ export function SkillsForm({ initialValues, dragHandle }: SkillsFormProps) {
             </p>
           )}
         </div>
+        <div hidden={formLang !== "en"} className="flex flex-col gap-1.5">
+          <label htmlFor="labelEn" className="text-sm font-medium text-parchment">
+            Label (EN)
+          </label>
+          <input
+            id="labelEn"
+            {...register("labelEn")}
+            placeholder="Untranslated — falls back to the Spanish label"
+            className="rounded-md border border-white/10 bg-obsidian/60 px-3 py-2 text-sm text-parchment focus-visible:border-gold-glow/50"
+          />
+        </div>
 
         <div className="flex flex-col gap-1.5">
           <label htmlFor="period" className="text-sm font-medium text-parchment">
@@ -180,7 +229,7 @@ export function SkillsForm({ initialValues, dragHandle }: SkillsFormProps) {
           />
         </div>
 
-        <div className="flex flex-col gap-1.5">
+        <div hidden={formLang !== "es"} className="flex flex-col gap-1.5">
           <label htmlFor="description" className="text-sm font-medium text-parchment">
             Descripción
           </label>
@@ -196,8 +245,20 @@ export function SkillsForm({ initialValues, dragHandle }: SkillsFormProps) {
             </p>
           )}
         </div>
+        <div hidden={formLang !== "en"} className="flex flex-col gap-1.5">
+          <label htmlFor="descriptionEn" className="text-sm font-medium text-parchment">
+            Description (EN)
+          </label>
+          <textarea
+            id="descriptionEn"
+            rows={3}
+            {...register("descriptionEn")}
+            placeholder="Untranslated — falls back to the Spanish description"
+            className="rounded-md border border-white/10 bg-obsidian/60 px-3 py-2 text-sm text-parchment focus-visible:border-gold-glow/50"
+          />
+        </div>
 
-        <div className="flex flex-col gap-1.5">
+        <div hidden={formLang !== "es"} className="flex flex-col gap-1.5">
           <label htmlFor="achievements" className="text-sm font-medium text-parchment">
             Logros / &quot;XP obtenida&quot; (uno por línea, opcional)
           </label>
@@ -205,6 +266,18 @@ export function SkillsForm({ initialValues, dragHandle }: SkillsFormProps) {
             id="achievements"
             rows={4}
             {...register("achievements")}
+            className="rounded-md border border-white/10 bg-obsidian/60 px-3 py-2 text-sm text-parchment focus-visible:border-gold-glow/50"
+          />
+        </div>
+        <div hidden={formLang !== "en"} className="flex flex-col gap-1.5">
+          <label htmlFor="achievementsEn" className="text-sm font-medium text-parchment">
+            Achievements (EN, one per line, optional)
+          </label>
+          <textarea
+            id="achievementsEn"
+            rows={4}
+            {...register("achievementsEn")}
+            placeholder="Untranslated — falls back to the Spanish achievements"
             className="rounded-md border border-white/10 bg-obsidian/60 px-3 py-2 text-sm text-parchment focus-visible:border-gold-glow/50"
           />
         </div>

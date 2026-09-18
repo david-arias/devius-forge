@@ -1,6 +1,7 @@
 import { Anvil } from "lucide-react";
 import { type Quest } from "@/lib/demeter/schemas";
 import { EmptyState, QuestCarousel, SectionHeading } from "@/components/hefesto/ui";
+import { getTranslations } from "@/lib/i18n/get-translations";
 
 interface QuestShowcaseProps {
   quests: Quest[];
@@ -12,8 +13,9 @@ interface QuestShowcaseProps {
  * desktop, carrusel nativo con scroll-snap en touch. Este archivo queda
  * como Server Component fino: decide entre estado vacío y carrusel.
  */
-export function QuestShowcase({ quests }: QuestShowcaseProps) {
-  const heading = <SectionHeading index="04" eyebrow="Bitácora" title="Quests" className="mb-10" />;
+export async function QuestShowcase({ quests }: QuestShowcaseProps) {
+  const t = await getTranslations();
+  const heading = <SectionHeading index="04" eyebrow={t.questShowcase.eyebrow} title="Quests" className="mb-10" />;
 
   if (quests.length === 0) {
     return (
@@ -21,8 +23,8 @@ export function QuestShowcase({ quests }: QuestShowcaseProps) {
         {heading}
         <EmptyState
           icon={Anvil}
-          title="La forja está vacía"
-          description="Los próximos casos de estudio se están templando. Cada Quest publicada aparecerá acá."
+          title={t.questShowcase.emptyTitle}
+          description={t.questShowcase.emptyDescription}
         />
       </section>
     );

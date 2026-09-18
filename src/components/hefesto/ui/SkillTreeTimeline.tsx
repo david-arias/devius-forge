@@ -11,6 +11,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { type SkillNode } from "@/lib/demeter/schemas";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/use-translation";
 
 interface SkillTreeTimelineProps {
   nodes: SkillNode[];
@@ -56,6 +57,7 @@ function buildPath(ys: number[], height: number) {
  */
 export function SkillTreeTimeline({ nodes }: SkillTreeTimelineProps) {
   const reduce = useReducedMotion();
+  const { t } = useTranslation();
   const listRef = useRef<HTMLOListElement>(null);
   const [geom, setGeom] = useState<{ height: number; ys: number[] }>({ height: 0, ys: [] });
   const [litCount, setLitCount] = useState(0);
@@ -208,8 +210,8 @@ export function SkillTreeTimeline({ nodes }: SkillTreeTimelineProps) {
                 />
                 <div className="relative flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                   <p className="text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-emerald-glow/90">
-                    Nodo {String(index + 1).padStart(2, "0")}
-                    {node.unlocked === false && " · Bloqueado"}
+                    {t.skillTree.nodePrefix(String(index + 1).padStart(2, "0"))}
+                    {node.unlocked === false && t.skillTree.lockedSuffix}
                   </p>
                   {node.period && <span className="text-xs tabular-nums text-parchment-muted">{node.period}</span>}
                 </div>
@@ -224,7 +226,7 @@ export function SkillTreeTimeline({ nodes }: SkillTreeTimelineProps) {
                           aria-hidden
                           className="mt-0.5 self-start shrink-0 rounded border border-emerald-glow/30 bg-emerald-glow/10 px-1.5 text-[0.6rem] font-semibold leading-5 text-emerald-glow"
                         >
-                          +XP
+                          {t.skillTree.xpBadge}
                         </span>
                         <span>{achievement}</span>
                       </li>
