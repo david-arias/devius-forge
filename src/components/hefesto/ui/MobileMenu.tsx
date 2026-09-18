@@ -1,10 +1,11 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Menu, Trophy, X } from "lucide-react";
+import { Menu, Search, Trophy, X } from "lucide-react";
 import { useId, useState } from "react";
 import { type Navigation } from "@/lib/demeter/schemas";
 import { useAchievementsStore } from "@/lib/minerva/achievements-store";
+import { useCommandPaletteStore } from "@/lib/minerva/command-palette-store";
 import { useDialogPanel } from "@/lib/hefesto/use-dialog-panel";
 import { Button } from "./Button";
 
@@ -32,6 +33,7 @@ export function MobileMenu({ navigation }: MobileMenuProps) {
   const panelRef = useDialogPanel<HTMLDivElement>(open, () => setOpen(false));
   const unlock = useAchievementsStore((state) => state.unlock);
   const openAchievementsDrawer = useAchievementsStore((state) => state.openDrawer);
+  const openCommandPalette = useCommandPaletteStore((state) => state.openPalette);
 
   const emailLink = navigation.socialLinks.find((link) => link.kind === "email");
 
@@ -104,6 +106,21 @@ export function MobileMenu({ navigation }: MobileMenuProps) {
                       {link.label}
                     </a>
                   ))}
+
+                {/* Equivalente mobile de `CommandPaletteTrigger` (Iteración 29) —
+                    `Cmd/Ctrl+K` sigue funcionando si hay teclado externo, pero
+                    en mobile la única puerta de entrada real es este botón. */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeAndNavigate();
+                    openCommandPalette();
+                  }}
+                  className="inline-flex items-center gap-2 px-3 text-sm text-parchment-muted transition-colors duration-150 hover:text-parchment"
+                >
+                  <Search className="h-4 w-4" aria-hidden />
+                  Paleta de comandos
+                </button>
 
                 {/* Trigger del Drawer de Logros — en desktop vive en el Navbar (`AchievementsDrawerTrigger`, oculto bajo `sm:`), acá es su equivalente mobile (Iteración 12). */}
                 <button

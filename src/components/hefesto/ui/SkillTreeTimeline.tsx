@@ -105,7 +105,7 @@ export function SkillTreeTimeline({ nodes }: SkillTreeTimelineProps) {
           width={RAIL_W}
           height={geom.height}
           viewBox={`0 0 ${RAIL_W} ${geom.height}`}
-          className="pointer-events-none absolute left-0 top-0 overflow-visible"
+          className="pointer-events-none absolute left-0 top-0 overflow-visible print:hidden"
         >
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2={geom.height} gradientUnits="userSpaceOnUse">

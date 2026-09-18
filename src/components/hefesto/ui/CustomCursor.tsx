@@ -105,7 +105,7 @@ export function CustomCursor() {
   return (
     <motion.div
       aria-hidden
-      className="pointer-events-none fixed left-0 top-0 z-[100] rounded-full mix-blend-exclusion"
+      className="pointer-events-none fixed left-0 top-0 z-[100] rounded-full mix-blend-exclusion print:hidden"
       style={{
         x: springX,
         y: springY,

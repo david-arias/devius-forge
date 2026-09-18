@@ -6,6 +6,7 @@ import {
   AchievementCtaLink,
   AchievementsDrawerTrigger,
   Button,
+  CommandPaletteTrigger,
   Magnetic,
   MobileMenu,
 } from "@/components/hefesto/ui";
@@ -58,7 +59,7 @@ export function Navbar({ navigation, previewActive = false }: NavbarProps) {
   return (
     <header
       className={cn(
-        "fixed inset-x-0 z-50 border-b border-white/10 bg-black/20 backdrop-blur-md transition-[top] duration-200",
+        "fixed inset-x-0 z-50 border-b border-white/10 bg-black/20 backdrop-blur-md transition-[top] duration-200 print:hidden",
         previewActive ? "top-9" : "top-0"
       )}
     >
@@ -99,6 +100,7 @@ export function Navbar({ navigation, previewActive = false }: NavbarProps) {
             ))}
           </div>
 
+          <CommandPaletteTrigger className="hidden sm:flex" />
           <AchievementsDrawerTrigger className="hidden sm:flex" />
 
           {emailLink && (

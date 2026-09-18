@@ -3,7 +3,8 @@ import { Cinzel, Inter } from "next/font/google";
 import "./globals.css";
 import { draftMode } from "next/headers";
 import { SiteChrome } from "@/components/hefesto/sections";
-import { getNavigationForView } from "@/lib/minerva";
+import { getNavigationForView, getQuestsForView } from "@/lib/minerva";
+import { type CommandPaletteQuest } from "@/components/hefesto/ui";
 import { SITE_URL } from "@/lib/site";
 import { SupabaseRuntimeConfig } from "@/components/eter/SupabaseRuntimeConfig";
 import { readSupabaseEnv } from "@/lib/supabase/env";
@@ -49,6 +50,10 @@ export const metadata: Metadata = {
   creator: "Devius",
   alternates: {
     canonical: "/",
+    types: {
+      // Iteración 29 (Apolo) — feed RSS de Quests publicadas, ver `src/app/feed.xml/route.ts`.
+      "application/rss+xml": `${SITE_URL}/feed.xml`,
+    },
   },
   openGraph: {
     type: "profile",
@@ -86,7 +91,20 @@ export const metadata: Metadata = {
  * ya lo desactiva automáticamente (`scroll-behavior: auto !important`).
  */
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const navigation = await getNavigationForView();
+  // Iteración 29 (Apolo): la Paleta de Comandos (`CommandPalette.tsx`,
+  // montada más abajo vía `SiteChrome`) necesita buscar entre las Quests
+  // publicadas desde CUALQUIER ruta del sitio, no sólo `/` — por eso se
+  // resuelven acá, en el único layout que envuelve todas las páginas,
+  // en vez de en `src/app/page.tsx` (que sólo corre para la home).
+  // `getQuestsForView()` ya filtra por publicadas salvo Draft Mode activo
+  // (ver su docblock) — se reduce a la forma mínima que la paleta
+  // necesita (`CommandPaletteQuest`) antes de pasarla hacia abajo.
+  const [navigation, quests] = await Promise.all([getNavigationForView(), getQuestsForView()]);
+  const commandPaletteQuests: CommandPaletteQuest[] = quests.map((quest) => ({
+    id: quest.id,
+    title: quest.title,
+    summary: quest.summary,
+  }));
   // Iteración 18 (APOLO — "El Puente Bifröst"): una sola lectura de
   // `draftMode()` acá arriba, pasada hacia abajo a `PreviewBanner` (que
   // la vuelve a leer ella misma, es un Server Component independiente) y
@@ -143,7 +161,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             (Navbar/Footer/CustomCursor/Logros) se renderiza o no: en
             `/admin/*` NO se renderiza nada de esto — ver SiteChrome.tsx
             para el porqué (auditoría 2026-09-15, doble navegación en el CMS). */}
-        <SiteChrome navigation={navigation} previewActive={previewActive}>
+        <SiteChrome navigation={navigation} previewActive={previewActive} quests={commandPaletteQuests}>
           {children}
         </SiteChrome>
         {/* JSON-LD estático, generado server-side a partir de datos propios (no HTML de usuario) — ver comentario arriba. */}

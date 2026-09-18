@@ -16,7 +16,7 @@ interface SkillTreeProps {
  */
 export function SkillTree({ nodes }: SkillTreeProps) {
   return (
-    <section id="skill-tree" className="mx-auto max-w-3xl scroll-mt-24 px-4 py-20 sm:px-8 sm:py-28">
+    <section id="skill-tree" className="mx-auto max-w-3xl scroll-mt-24 px-4 py-20 sm:px-8 sm:py-28 print:py-6">
       <SectionHeading index="03" eyebrow="Progresión" title="Skill Tree" />
       {nodes.length === 0 && (
         <EmptyState

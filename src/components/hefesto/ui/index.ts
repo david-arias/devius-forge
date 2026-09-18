@@ -39,3 +39,5 @@ export * from "./MessagesInbox";
 export * from "./ForgeStatusScreen";
 export * from "./TelemetryRadar";
 export * from "./KonamiSecret";
+export * from "./CommandPalette";
+export * from "./CommandPaletteTrigger";

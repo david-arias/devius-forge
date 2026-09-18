@@ -16,7 +16,7 @@ interface CharacterSheetProps {
 export function CharacterSheet({ character }: CharacterSheetProps) {
   if (!character) {
     return (
-      <section className="mx-auto max-w-6xl px-4 py-20 sm:px-8 sm:py-28">
+      <section id="character-sheet" className="mx-auto max-w-6xl px-4 py-20 sm:px-8 sm:py-28 print:py-6">
         <SectionHeading index="02" eyebrow="Personaje" title="Character Sheet" />
         <EmptyState
           icon={ScrollText}
@@ -28,7 +28,7 @@ export function CharacterSheet({ character }: CharacterSheetProps) {
   }
 
   return (
-    <section className="mx-auto max-w-6xl px-4 py-20 sm:px-8 sm:py-28">
+    <section id="character-sheet" className="mx-auto max-w-6xl px-4 py-20 sm:px-8 sm:py-28 print:py-6">
       <SectionHeading index="02" eyebrow="Personaje" title="Character Sheet">
         <p className="mt-2 inline-flex items-center gap-2 text-sm text-parchment-muted">
           <span className="text-parchment">{character.name}</span>

@@ -118,7 +118,7 @@ export function Hero({ character, tags = [], ctaHref, resumeHref }: HeroProps) {
       id="home"
       // `--ph` = alto real del retrato (4:5, contenido en su caja). La palabra
       // gigante se ancla a esa medida para caer siempre a la altura de la cabeza.
-      className="relative isolate flex min-h-[100svh] flex-col overflow-hidden px-4 pb-8 pt-24 [--ph:min(72svh,min(100vw,680px)*1.25,900px)] sm:px-8 sm:pt-28 sm:[--ph:min(82svh,min(100vw,680px)*1.25,900px)]"
+      className="relative isolate flex min-h-[100svh] flex-col overflow-hidden px-4 pb-8 pt-24 [--ph:min(72svh,min(100vw,680px)*1.25,900px)] sm:px-8 sm:pt-28 sm:[--ph:min(82svh,min(100vw,680px)*1.25,900px)] print:hidden"
     >
       {/* Aura de la forja */}
       <div

@@ -5,6 +5,8 @@ import { type ReactNode } from "react";
 import {
   AchievementsDrawer,
   AchievementToast,
+  CommandPalette,
+  type CommandPaletteQuest,
   CustomCursor,
   KonamiSecret,
   PreviewBanner,
@@ -19,6 +21,8 @@ interface SiteChromeProps {
   children: ReactNode;
   /** Iteración 18 — ver el docblock de `previewActive` en `Navbar.tsx`. */
   previewActive?: boolean;
+  /** Iteración 29 — Quests publicadas para la Paleta de Comandos (`CommandPalette.tsx`), resueltas en `layout.tsx`. */
+  quests: CommandPaletteQuest[];
 }
 
 /**
@@ -45,7 +49,7 @@ interface SiteChromeProps {
  * Iteración 14) y `AdminToastHost` (Iteración 15) son la única
  * navegación/feedback dentro de `(protected)/layout.tsx`.
  */
-export function SiteChrome({ navigation, children, previewActive = false }: SiteChromeProps) {
+export function SiteChrome({ navigation, children, previewActive = false, quests }: SiteChromeProps) {
   const pathname = usePathname();
   const isAdminRoute = pathname?.startsWith("/admin") ?? false;
 
@@ -64,6 +68,8 @@ export function SiteChrome({ navigation, children, previewActive = false }: Site
       <Footer navigation={navigation} />
       <AchievementToast />
       <AchievementsDrawer />
+      {/* Iteración 29: la Paleta de Comandos (Cmd+K), sólo en el sitio público — mismo criterio que el resto de este chrome. */}
+      <CommandPalette quests={quests} />
       {/* Iteración 26: el Código Konami sólo vive en el sitio público. */}
       <KonamiSecret />
     </>

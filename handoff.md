@@ -2,7 +2,7 @@
 
 > Mantenido por **Apolo** (Memoria, Arquitectura & Documentación). Debe actualizarse antes de cerrar cualquier sesión de trabajo profunda. Ver `sistema_agentes.md` para el protocolo completo.
 
-_Última actualización: 2026-09-16 (Iteración 18 — "El Puente Bifröst": Draft Mode nativo de Next.js, banner de preview, botón "Ver Preview" en el CMS y guía de despliegue en Vercel)_
+_Última actualización: 2026-09-18 (Iteración 29 — "El Toque del Maestro": Paleta de Comandos Cmd/Ctrl+K, hoja de impresión (CV en A4) y feed RSS. **Nota de Apolo:** este archivo no se había vuelto a tocar desde la Iteración 18 — las Iteraciones 19 a 28 (ver comentarios "Iteración N" en el código y en `src/app/api/draft/route.ts`) avanzaron el proyecto real (Supabase Auth completo, CMS, telemetría, credenciales sin prefijo público, etc.) sin dejar registro acá. No se reconstruye ese historial retroactivamente en esta sesión — sólo se documenta lo hecho hoy — pero queda anotado para que la próxima sesión sepa que faltan esos huecos.)_
 
 ## 1. Resumen del Proyecto
 
@@ -99,13 +99,21 @@ Regla de oro vigente: ningún componente de `hefesto` importa directamente de `d
 - **HADES — `prefers-reduced-motion`:** se confirmó que el único loop infinito de Framer Motion del sitio (`Ember` en el Hero) ya está guardado con `useReducedMotion()`; no había otros loops sin guard.
 - Verificado: `npx tsc --noEmit`, `npx eslint src` y `npm run build` (Turbopack) sin errores tras todos los cambios de esta iteración.
 
+**Iteración 29 ("El Toque del Maestro", 2026-09-18):** tres utilidades orientadas a reclutadores técnicos, a pedido de Devius.
+- **MINERVA/HEFESTO — Paleta de Comandos (`Cmd/Ctrl+K`):** `CommandPalette.tsx` (nuevo, en `components/hefesto/ui`), montada globalmente en `SiteChrome` (sólo sitio público, igual que `AchievementsDrawer`/`KonamiSecret`). Construida a mano con Framer Motion (sin `cmdk`, el proyecto no tiene librería de menús externa — mismo criterio que `EntityActionsMenu.tsx`), reutilizando `useDialogPanel` (focus trap/Escape/scroll-lock) y el patrón store+trigger de `achievements-store.ts` (`command-palette-store.ts`, nuevo). Busca entre las Quests publicadas (resueltas ahora en `layout.tsx` con `getQuestsForView()` y pasadas por `SiteChrome`, no sólo en `page.tsx`), salta al Skill Tree, abre el Drawer de Logros y — Iteración 29 también — activa/desactiva el audio del sitio (`audio-preference-store.ts`, nuevo: cierra el pendiente de "control de silenciar sonidos" que `use-audio.ts` documentaba desde la Iteración 8). Atajo secreto: escribir `/admin` revela un resultado que va directo al CMS. Trigger visible en `Navbar` (desktop) y `MobileMenu` (mobile) — el atajo de teclado nunca es la única puerta de entrada (HADES).
+- **HADES — Hoja de impresión (`@media print`, `globals.css`):** Ctrl+P ahora produce un CV en A4 fiel — Hero/Navbar/Footer/partículas ocultos (`print:hidden` en cada componente), colores remapeados a negro sobre blanco (remapeo de los tokens CSS de `:root`, cascada automática a toda clase Tailwind que ya usaba esos tokens), y un fix real para el bug de fondo: contenido animado con `whileInView` (Framer Motion) que el visitante nunca scrolleó queda con `opacity`/`transform` inline "congelados" en su estado inicial — invisible o a medio camino en el PDF. Se fuerza `opacity: 1 !important` / `transform: none !important` sobre cualquier `[style*="opacity"]`/`[style*="transform"]` (un `!important` de hoja de estilos sí gana a un `style` inline sin `!important`). `#quests` se oculta en impresión aparte (`QuestCarousel.tsx` es `overflow-x`/`h-screen overflow-hidden` — imprimirlo recortaría Quests en vez de listarlas); Inventario queda visible (grilla estática, sin ese problema). `CharacterSheet` ganó `id="character-sheet"`.
+- **APOLO — RSS (`/feed.xml`):** `src/app/feed.xml/route.ts` (Route Handler nuevo), RSS 2.0 de Quests publicadas (mismo criterio que `sitemap.ts`: `getQuests()` sin `includeDrafts`, ISR de 1h). Referenciado desde `layout.tsx` (`metadata.alternates.types["application/rss+xml"]`) para que lectores de feeds/navegadores lo detecten solos.
+- Verificado: `npx tsc --noEmit`, `npx eslint src` (0 errores; sólo 3 warnings preexistentes de `react-hook-form` en los formularios del CMS, no relacionados) y `npm run build` (Turbopack) sin errores — `/feed.xml` sale listado como ruta estática ISR junto a `/sitemap.xml`/`/robots.txt`.
+
+**Roto / pendiente de decisión:**
+
 **Roto / pendiente de decisión:**
 - Los enlaces de GitHub/LinkedIn/correo en `src/lib/demeter/queries/navigation.ts` son placeholders (`github.com/devius`, `linkedin.com/in/devius`, `hola@devius.dev`) — hay que reemplazarlos por los reales.
 - `lucide-react` (esta versión del paquete) ya no incluye íconos de marca (GitHub/LinkedIn); los enlaces sociales usan un ícono genérico (`ExternalLink`) + etiqueta de texto en vez del logo de cada red.
 - `imagePlaceholder` sigue siendo el fallback cuando `quest.media` no está definido — pendiente subir capturas/videos reales de cada proyecto y completar `media`/`testimonial` en `src/lib/demeter/queries/quests.ts` (Fase 2 de la auditoría).
 - `/cv-devius.pdf` referenciado desde el botón "Descargar CV" del Hero **no existe todavía** en `/public` — subir el PDF real o el botón queda roto (404).
 - ~~`SITE_URL` hardcodeado~~ — resuelto: vive en `src/lib/site.ts` y se configura con la env `SITE_URL` (Iteración 23/27).
-- `useAudio` (hover "whoosh" / click "clink" / logro "unlock", Iteración 10) está construido pero **no** cableado con sonido real en ningún caso — faltan los 3 assets de audio en `/public/sfx/` y un control de "silenciar sonidos" en la UI antes de que suene nada (falla en silencio mientras tanto, por diseño).
+- `useAudio` (hover "whoosh" / click "clink" / logro "unlock", Iteración 10) está construido pero **no** cableado con sonido real todavía — faltan los 3 assets de audio en `/public/sfx/`. ~~un control de "silenciar sonidos" en la UI~~ — resuelto en la Iteración 29: `audio-preference-store.ts` + la acción "Activar/Desactivar audio" de la Paleta de Comandos (`Cmd/Ctrl+K`). Sigue fallando en silencio mientras no existan los assets (por diseño).
 - No hay control de versiones Git inicializado.
 - No hay tests configurados (Vitest/Playwright no instalados todavía, sólo carpetas creadas).
 - No hay CI/CD ni pipeline de deploy configurado.

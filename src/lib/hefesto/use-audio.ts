@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef } from "react";
+import { useAudioPreferenceStore } from "@/lib/minerva/audio-preference-store";
 
 /**
  * Interruptor global de SFX — Apolo, Iteración 21 (tech debt).
@@ -34,9 +35,10 @@ const SFX_ENABLED = process.env.NEXT_PUBLIC_SFX_ENABLED === "true";
  *     cargar la página (los navegadores lo bloquean igual, pero además
  *     sería una mala práctica de accesibilidad).
  *  3. Debe respetar una preferencia de "silenciar sonidos" persistida
- *     (localStorage) antes de reproducir nada — todavía no existe ese
- *     control en la UI, hay que diseñarlo (un ícono de altavoz en el
- *     Navbar sería el lugar natural) antes de cablear esto a un botón real.
+ *     (localStorage) antes de reproducir nada — resuelto en la Iteración 29:
+ *     `audio-preference-store.ts` + la acción "Activar/Desactivar audio"
+ *     de la Paleta de Comandos (`CommandPalette.tsx`), consultada más
+ *     abajo (`muted`).
  *  4. NO debe interferir con `useReducedMotion()` — son ejes independientes
  *     (una persona puede querer sonido sin movimiento, o viceversa).
  *
@@ -54,9 +56,15 @@ export function useAudio() {
   const hoverRef = useRef<HTMLAudioElement | null>(null);
   const clickRef = useRef<HTMLAudioElement | null>(null);
   const achievementRef = useRef<HTMLAudioElement | null>(null);
+  // Iteración 29 (Minerva): preferencia real de "silenciar audio",
+  // controlable desde la Paleta de Comandos (`CommandPalette.tsx`) — ver
+  // `audio-preference-store.ts`. Eje independiente de `SFX_ENABLED`
+  // (build) y de `useReducedMotion()` (animación), tal como pedía el
+  // punto 4 del docblock de arriba.
+  const muted = useAudioPreferenceStore((state) => state.muted);
 
   const playHover = useCallback(() => {
-    if (!SFX_ENABLED) return;
+    if (!SFX_ENABLED || muted) return;
     // Lazy-init: el <audio> sólo se crea la primera vez que se necesita,
     // nunca al montar el árbol (evita peticiones de red innecesarias en
     // cada carga de página mientras el asset no exista/esté silenciado).
@@ -69,16 +77,16 @@ export function useAudio() {
       // o asset inexistente todavía — falla en silencio a propósito, este
       // sonido es un extra decorativo, nunca debe romper la interacción.
     });
-  }, []);
+  }, [muted]);
 
   const playClick = useCallback(() => {
-    if (!SFX_ENABLED) return;
+    if (!SFX_ENABLED || muted) return;
     if (!clickRef.current) {
       clickRef.current = new Audio("/sfx/click-anvil.mp3");
       clickRef.current.volume = 0.35;
     }
     void clickRef.current.play().catch(() => {});
-  }, []);
+  }, [muted]);
 
   /**
    * playAchievement — sonido opcional del Toast de Logro (Iteración 10,
@@ -89,13 +97,13 @@ export function useAudio() {
    * nada más cuando el asset real esté listo.
    */
   const playAchievement = useCallback(() => {
-    if (!SFX_ENABLED) return;
+    if (!SFX_ENABLED || muted) return;
     if (!achievementRef.current) {
       achievementRef.current = new Audio("/sfx/achievement-unlock.mp3");
       achievementRef.current.volume = 0.4;
     }
     void achievementRef.current.play().catch(() => {});
-  }, []);
+  }, [muted]);
 
   return { playHover, playClick, playAchievement };
 }

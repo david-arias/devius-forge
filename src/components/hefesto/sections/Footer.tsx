@@ -31,7 +31,7 @@ export function Footer({ navigation }: FooterProps) {
   const year = new Date().getFullYear();
 
   return (
-    <footer id="contacto" className="relative scroll-mt-20 overflow-hidden border-t border-white/10">
+    <footer id="contacto" className="relative scroll-mt-20 overflow-hidden border-t border-white/10 print:hidden">
       <AchievementScrollTrigger achievementId="forge-explorer" />
 
       {/* Halo de la forja */}

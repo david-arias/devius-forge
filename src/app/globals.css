@@ -268,3 +268,108 @@ body.custom-cursor-active textarea {
 .animate-forge-flicker {
   animation: forge-flicker 2.6s ease-in-out infinite;
 }
+
+/*
+ * Hoja de impresión — HADES, Iteración 29 ("El Toque del Maestro").
+ * Objetivo: que Ctrl+P produzca un CV en A4 fiel al Character Sheet +
+ * Skill Tree — texto negro sobre blanco puro, sin el chrome del sitio
+ * (Navbar/Footer/Hero/partículas) y sin animaciones de Framer Motion a
+ * medio camino.
+ *
+ * El truco central: los tokens de MASTER TOKENS (arriba en este mismo
+ * archivo) son variables CSS — remapearlas acá alcanza para que
+ * CUALQUIER componente que use `bg-obsidian`/`text-parchment`/etc.
+ * (Tailwind → `@theme inline` → `var(--color-*)`) imprima en blanco y
+ * negro sin tocar un solo componente por su clase.
+ *
+ * Lo que SÍ necesita un ajuste puntual:
+ *  (a) Contenido que Framer Motion deja en `opacity`/`transform`/`filter`
+ *      inline (`RevealText`, `fadeInUp`, `slideIn`, las cartas del Skill
+ *      Tree que sólo llegan a opacidad plena cuando la rama "las
+ *      alcanza" con el scroll). Si el visitante nunca scrolleó hasta ahí,
+ *      `whileInView`/el progreso de scroll nunca dispararon y ese
+ *      contenido quedaría congelado a medio revelar — o directamente
+ *      invisible — en el PDF/impresión. Un `!important` de hoja de
+ *      estilos SÍ le gana a un `style` inline sin `!important` (spec de
+ *      CSS), así que forzar `opacity`/`transform` acá garantiza que TODO
+ *      el contenido esté visible y en su posición final, se haya
+ *      scrolleado o no.
+ *  (b) El chrome fijo/decorativo: se oculta con `print:hidden` (variante
+ *      nativa de Tailwind) directamente en cada componente — Navbar,
+ *      Footer, Hero, CustomCursor, CommandPalette/CommandPaletteTrigger,
+ *      el SVG del eje del Skill Tree — y acá sólo lo que vive en
+ *      `layout.tsx` sin envoltorio propio (`.forge-atmosphere`/
+ *      `.noise-overlay`).
+ *  (c) `#quests`: `QuestCarousel.tsx` es `overflow-x-auto`/`h-screen
+ *      overflow-hidden` (scroll horizontal con imán en desktop, carrusel
+ *      nativo en mobile) — imprimirlo recortaría Quests fuera de la hoja
+ *      en vez de listarlas, así que se oculta entero. Character Sheet +
+ *      Skill Tree son el foco real del CV impreso; Inventario queda
+ *      visible (grilla estática, sin ese problema).
+ */
+@media print {
+  @page {
+    size: A4;
+    margin: 16mm 14mm;
+  }
+
+  :root {
+    --color-obsidian: #ffffff;
+    --color-obsidian-soft: #ffffff;
+    --color-carbon: #ffffff;
+    --color-carbon-elevated: #ffffff;
+    --color-border-subtle: #cbcbcb;
+    --color-parchment: #0a0a0a;
+    --color-parchment-muted: #3a3a3a;
+    --color-emerald-glow: #0a0a0a;
+    --color-emerald-deep: #0a0a0a;
+    --color-gold-glow: #0a0a0a;
+    --color-gold-deep: #0a0a0a;
+    --color-neon: #0a0a0a;
+    --color-danger: #0a0a0a;
+    --color-focus-ring: transparent;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #0a0a0a !important;
+  }
+
+  /* (a) — ver docblock arriba. */
+  [style*="opacity"] {
+    opacity: 1 !important;
+  }
+  [style*="transform"] {
+    transform: none !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Anillos del Skill Tree: si el estado "encendido" nunca se alcanzó
+     por scroll, el borde queda en blanco 15% (invisible sobre papel) —
+     se pareja a un gris consistente para que ningún nodo luzca "roto". */
+  [data-skill-dot] {
+    border-color: rgba(10, 10, 10, 0.35) !important;
+  }
+
+  /* (b) — decorativos de `layout.tsx` sin envoltorio Tailwind propio. */
+  .forge-atmosphere,
+  .noise-overlay {
+    display: none !important;
+  }
+
+  /* (c) — ver docblock arriba. */
+  #quests {
+    display: none !important;
+  }
+}
