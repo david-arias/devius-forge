@@ -26,8 +26,17 @@ interface SiteChromeProps {
   previewActive?: boolean;
   /** Iteración 29 — Quests publicadas para la Paleta de Comandos (`CommandPalette.tsx`), resueltas en `layout.tsx`. */
   quests: CommandPaletteQuest[];
-  /** Iteración 32 (i18n) — textos del Footer, resueltos server-side en `layout.tsx` y pasados hacia abajo (ver el docblock de `Footer.tsx`). */
-  footerT: Dictionary["footer"];
+  /**
+   * Iteración 32 (i18n) — textos del Footer, resueltos server-side en
+   * `layout.tsx` y pasados hacia abajo (ver el docblock de `Footer.tsx`).
+   * `Omit<..., "credits"> & { credits: string }` (Iteración 35, fix del
+   * 500 global): `Dictionary["footer"].credits` es una FUNCIÓN
+   * (`(year) => string`) — no cruza la frontera servidor→cliente hacia
+   * este Client Component. `layout.tsx` ya la resuelve a un string plano
+   * antes de pasarla; este tipo documenta esa forma real, no la del
+   * diccionario original.
+   */
+  footerT: Omit<Dictionary["footer"], "credits"> & { credits: string };
 }
 
 /**

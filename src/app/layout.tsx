@@ -144,6 +144,14 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     title: quest.title,
     summary: quest.summary,
   }));
+  // Iteración 35 (fix del 500 global — "Functions cannot be passed directly
+  // to Client Components"): `t.footer.credits` es una función
+  // (`(year) => string`), y `footerT` cruza acá abajo hacia `SiteChrome`
+  // ("use client"). RSC sólo serializa datos planos a través de esa
+  // frontera — una función ahí tira el sitio entero. Se resuelve al
+  // STRING final ACÁ (Server Component, único lugar donde puede correr la
+  // función) antes de que `footerT` cruce el límite servidor→cliente.
+  const footerT = { ...t.footer, credits: t.footer.credits(new Date().getFullYear()) };
   // Iteración 18 (APOLO — "El Puente Bifröst"): una sola lectura de
   // `draftMode()` acá arriba, pasada hacia abajo a `PreviewBanner` (que
   // la vuelve a leer ella misma, es un Server Component independiente) y
@@ -200,7 +208,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             (Navbar/Footer/CustomCursor/Logros) se renderiza o no: en
             `/admin/*` NO se renderiza nada de esto — ver SiteChrome.tsx
             para el porqué (auditoría 2026-09-15, doble navegación en el CMS). */}
-        <SiteChrome navigation={navigation} previewActive={previewActive} quests={commandPaletteQuests} footerT={t.footer}>
+        <SiteChrome navigation={navigation} previewActive={previewActive} quests={commandPaletteQuests} footerT={footerT}>
           {children}
         </SiteChrome>
         {/* JSON-LD estático, generado server-side a partir de datos propios (no HTML de usuario) — ver comentario arriba. */}

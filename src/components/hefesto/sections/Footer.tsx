@@ -20,8 +20,16 @@ interface FooterProps {
    * Component) resuelve el diccionario UNA vez y pasa sólo la porción
    * `footer` — un objeto plano de strings, serializable a través del
    * límite servidor→cliente — hacia abajo por `SiteChrome`.
+   *
+   * `credits` es la ÚNICA excepción a "objeto plano de strings":
+   * `Dictionary["footer"].credits` es una función (`(year) => string`,
+   * ver `es.ts`/`en.ts`) — no serializable entre Server y Client
+   * Components. `layout.tsx` ya la resuelve al string final antes de que
+   * esto cruce la frontera (Iteración 35, fix del 500 global "Functions
+   * cannot be passed directly to Client Components"), así que acá llega
+   * como string plano igual que el resto.
    */
-  t: Dictionary["footer"];
+  t: Omit<Dictionary["footer"], "credits"> & { credits: string };
 }
 
 /**
@@ -40,7 +48,6 @@ interface FooterProps {
 export function Footer({ navigation, t }: FooterProps) {
   const emailLink = navigation.socialLinks.find((link) => link.kind === "email");
   const rawEmail = emailLink?.href.replace(/^mailto:/, "");
-  const year = new Date().getFullYear();
 
   return (
     <footer id="contacto" className="relative scroll-mt-20 overflow-hidden border-t border-white/10 print:hidden">
@@ -105,8 +112,8 @@ export function Footer({ navigation, t }: FooterProps) {
       {/* Firma gigante + créditos */}
       <div className="relative mx-auto max-w-6xl px-4 sm:px-8">
         <div className="flex flex-col items-start justify-between gap-2 border-t border-white/10 py-6 text-xs text-parchment-muted/75 sm:flex-row sm:items-center">
-          {/* Iteración 35 (Apolo, barrido de hardcoded strings): antes era texto fijo en español, siempre, sin importar el idioma activo. */}
-          <p>{t.credits(year)}</p>
+          {/* Iteración 35 (Apolo, barrido de hardcoded strings): antes era texto fijo en español, siempre, sin importar el idioma activo. Ya viene resuelto (string) desde `layout.tsx` — ver `FooterProps.t`. */}
+          <p>{t.credits}</p>
           <div className="flex items-center gap-4">
             {/* Iteración 30 (Hades/Hefesto) — Eco/Premium, ver `print-mode-store.ts`. */}
             <PrintModeToggle className="print:hidden" />
