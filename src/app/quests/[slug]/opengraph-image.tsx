@@ -27,6 +27,27 @@ export const alt = "Devius — Quest";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
+/**
+ * `withAlpha()` — Apolo, Iteración 34 (fix del build roto en Vercel).
+ * `ImageResponse` (`next/og`) NO renderiza con un browser real: usa
+ * Satori, que convierte JSX+CSS a SVG con un parser de CSS bastante más
+ * chico que el de un motor real — no entiende funciones CSS modernas
+ * como `color-mix()` (que sí se usa sin problema en el resto del sitio,
+ * `Card.tsx`/`QuestCard.tsx`/`page.tsx`, porque esos SÍ corren en un
+ * browser). El error de build ("Unexpected token type: function") es
+ * exactamente Satori tropezando con `color-mix(in srgb, ...)`. Acá se
+ * resuelve la mezcla a mano en JS (hex → `rgba()`) ANTES de mandarlo al
+ * `style`, así Satori sólo ve un color plano que sabe interpretar.
+ */
+function withAlpha(hex: string, alphaPercent: number): string {
+  const normalized = hex.replace("#", "");
+  const full = normalized.length === 3 ? normalized.split("").map((c) => c + c).join("") : normalized;
+  const r = parseInt(full.slice(0, 2), 16);
+  const g = parseInt(full.slice(2, 4), 16);
+  const b = parseInt(full.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alphaPercent / 100})`;
+}
+
 export async function generateStaticParams() {
   const quests = await getQuests();
   return quests.map((quest) => ({ slug: quest.id }));
@@ -80,7 +101,7 @@ export default async function QuestOpengraphImage({ params }: OpengraphImageProp
           justifyContent: "space-between",
           padding: "64px 72px",
           backgroundColor: "#0a0a0f",
-          backgroundImage: `radial-gradient(ellipse 55% 60% at 100% 0%, color-mix(in srgb, ${quest.accentColor} 30%, transparent), transparent 60%), radial-gradient(ellipse 50% 50% at 0% 100%, color-mix(in srgb, ${quest.accentColor} 18%, transparent), transparent 60%)`,
+          backgroundImage: `radial-gradient(ellipse 55% 60% at 100% 0%, ${withAlpha(quest.accentColor, 30)}, transparent 60%), radial-gradient(ellipse 50% 50% at 0% 100%, ${withAlpha(quest.accentColor, 18)}, transparent 60%)`,
           fontFamily: "sans-serif",
         }}
       >
@@ -149,8 +170,8 @@ export default async function QuestOpengraphImage({ params }: OpengraphImageProp
                   display: "flex",
                   padding: "10px 20px",
                   borderRadius: 999,
-                  border: `1px solid color-mix(in srgb, ${quest.accentColor} 45%, transparent)`,
-                  backgroundColor: "color-mix(in srgb, " + quest.accentColor + " 12%, transparent)",
+                  border: `1px solid ${withAlpha(quest.accentColor, 45)}`,
+                  backgroundColor: withAlpha(quest.accentColor, 12),
                   color: "#e9e6df",
                   fontSize: 22,
                 }}
