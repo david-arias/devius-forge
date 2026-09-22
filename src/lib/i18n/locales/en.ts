@@ -105,5 +105,16 @@ export const en: Dictionary = {
     toastSuccessTitle: "Message forged!",
     toastErrorTitle: "The forge went cold",
     closeNotification: "Close notification",
+    errors: {
+      nameMin: "Your name needs at least 2 letters.",
+      nameMax: "That name is too long (max 80).",
+      emailMax: "That email is too long.",
+      emailInvalid: "That email doesn't look valid.",
+      contentMin: "Tell me a bit more (minimum 10 characters).",
+      contentMax: "That message is too long (max 2000).",
+      generic: "Check the form fields.",
+    },
+    serverSuccess: "Message sent through the Forge.",
+    serverErrorFallback: "The forge couldn't send your message. Try again or email me directly.",
   },
 };

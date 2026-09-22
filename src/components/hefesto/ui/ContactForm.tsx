@@ -3,13 +3,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { AlertTriangle, Flame, Loader2, Send, X } from "lucide-react";
-import { type BaseSyntheticEvent, useActionState, useEffect, useId, useState, useSyncExternalStore } from "react";
+import { type BaseSyntheticEvent, useActionState, useEffect, useId, useMemo, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { useForm } from "react-hook-form";
 import { initialActionState } from "@/lib/minerva/actions/action-state";
 import { sendContactMessageAction } from "@/lib/minerva/actions/contact-actions";
 import { useAchievementsStore } from "@/lib/minerva/achievements-store";
-import { ContactFormSchema, type ContactFormValues } from "@/lib/minerva/forms/contact-form-schema";
+import { createContactFormSchema, type ContactFormValues } from "@/lib/minerva/forms/contact-form-schema";
 import { trackForgeEvent } from "@/lib/minerva/telemetry";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/use-translation";
@@ -75,13 +75,18 @@ export function ContactForm({ className }: { className?: string }) {
   );
   const [toast, setToast] = useState<{ kind: "success" | "error"; message: string; key: number } | null>(null);
 
+  // El schema se reconstruye por idioma: si el usuario cambia ES/EN a mitad de
+  // formulario, los mensajes de validación que ya estén en pantalla se
+  // actualizan solos en el próximo `trigger` (Iteración 33).
+  const contactFormSchema = useMemo(() => createContactFormSchema(t), [t]);
+
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors },
   } = useForm<ContactFormValues>({
-    resolver: zodResolver(ContactFormSchema),
+    resolver: zodResolver(contactFormSchema),
     defaultValues: { name: "", email: "", content: "", website: "" },
   });
 

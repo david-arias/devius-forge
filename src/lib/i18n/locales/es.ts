@@ -111,6 +111,17 @@ export interface Dictionary {
     toastSuccessTitle: string;
     toastErrorTitle: string;
     closeNotification: string;
+    errors: {
+      nameMin: string;
+      nameMax: string;
+      emailMax: string;
+      emailInvalid: string;
+      contentMin: string;
+      contentMax: string;
+      generic: string;
+    };
+    serverSuccess: string;
+    serverErrorFallback: string;
   };
 }
 
@@ -212,5 +223,16 @@ export const es: Dictionary = {
     toastSuccessTitle: "¡Mensaje forjado!",
     toastErrorTitle: "La forja se enfrió",
     closeNotification: "Cerrar notificación",
+    errors: {
+      nameMin: "Tu nombre necesita al menos 2 letras.",
+      nameMax: "El nombre es demasiado largo (máx. 80).",
+      emailMax: "El correo es demasiado largo.",
+      emailInvalid: "Ese correo no parece válido.",
+      contentMin: "Contame un poco más (mínimo 10 caracteres).",
+      contentMax: "El mensaje es demasiado largo (máx. 2000).",
+      generic: "Revisá los campos del formulario.",
+    },
+    serverSuccess: "Mensaje enviado a través de la Forja.",
+    serverErrorFallback: "La forja no pudo enviar tu mensaje. Probá de nuevo o escribime por correo.",
   },
 };
