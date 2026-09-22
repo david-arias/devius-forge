@@ -19,7 +19,7 @@ import { initialActionState } from "@/lib/minerva/actions/action-state";
 import { useAdminToastStore } from "@/lib/minerva/admin-toast-store";
 import { type Quest } from "@/lib/demeter/schemas";
 import { type QuestEnDraft } from "@/lib/demeter/queries/quests";
-import { cn } from "@/lib/utils";
+import { cn, slugify } from "@/lib/utils";
 import { QuestFormSchema, type QuestFormValues } from "./quest-form-schema";
 
 interface QuestFormProps {
@@ -79,6 +79,23 @@ export function QuestForm({ initialValues, initialValuesEn, collapsible = false,
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(
     initialValues?.media?.type === "image" ? initialValues.media.src : null
   );
+  // Imágenes por capítulo (Iteración 34, Hefesto/Éter — "Expansión de
+  // Media"): mismo patrón que `coverImageUrl` de arriba, uno por cada
+  // capítulo del "zig-zag". Sólo controlan la vista previa (nombre de
+  // archivo/URL en pantalla) — el valor que de verdad viaja al Server
+  // Action vive en el input oculto registrado por react-hook-form
+  // (`chapterImage*`, ver más abajo) vía `setValue()`.
+  const [chapterImageUrls, setChapterImageUrls] = useState<{
+    problem: string | null;
+    uxProcess: string | null;
+    uiSolution: string | null;
+    impact: string | null;
+  }>({
+    problem: initialValues?.caseStudy.chapterMedia?.problem?.src ?? null,
+    uxProcess: initialValues?.caseStudy.chapterMedia?.uxProcess?.src ?? null,
+    uiSolution: initialValues?.caseStudy.chapterMedia?.uiSolution?.src ?? null,
+    impact: initialValues?.caseStudy.chapterMedia?.impact?.src ?? null,
+  });
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const isCollapsible = collapsible && Boolean(initialValues);
   const [isOpen, setIsOpen] = useState(!isCollapsible);
@@ -94,11 +111,17 @@ export function QuestForm({ initialValues, initialValuesEn, collapsible = false,
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<QuestFormValues>({
     resolver: zodResolver(QuestFormSchema),
     defaultValues: {
       id: initialValues?.id ?? "",
+      // Iteración 34 — el id ORIGINAL con el que se abrió el formulario
+      // (string vacío en la Quest "Nueva"); `saveQuestAction` lo compara
+      // contra `id` para saber si el slug cambió y evitar el duplicado
+      // huérfano (ver `upsertQuest()` en `quests.mutations.ts`).
+      originalId: initialValues?.id ?? "",
       title: initialValues?.title ?? "",
       summary: initialValues?.summary ?? "",
       role: initialValues?.role ?? "",
@@ -124,6 +147,12 @@ export function QuestForm({ initialValues, initialValuesEn, collapsible = false,
       uxProcessEn: initialValuesEn?.uxProcessEn ?? "",
       uiSolutionEn: initialValuesEn?.uiSolutionEn ?? "",
       impactEn: initialValuesEn?.impactEn ?? "",
+      // Iteración 34 (Hefesto/Éter, "Expansión de Media").
+      coverImageUrl: initialValues?.media?.type === "image" ? initialValues.media.src : "",
+      chapterImageProblem: initialValues?.caseStudy.chapterMedia?.problem?.src ?? "",
+      chapterImageUxProcess: initialValues?.caseStudy.chapterMedia?.uxProcess?.src ?? "",
+      chapterImageUiSolution: initialValues?.caseStudy.chapterMedia?.uiSolution?.src ?? "",
+      chapterImageImpact: initialValues?.caseStudy.chapterMedia?.impact?.src ?? "",
     },
   });
 
@@ -293,13 +322,25 @@ export function QuestForm({ initialValues, initialValuesEn, collapsible = false,
                 <input
                   id="id"
                   {...register("id")}
+                  // Iteración 34 (Apolo — fix del "slug 404"): normaliza en
+                  // vivo lo que se tipea a un slug válido (minúsculas,
+                  // números, guiones — ver `slugify()` en `lib/utils.ts`).
+                  // Antes esto era texto 100% libre: "El Bazar Encantado"
+                  // se guardaba tal cual como `id`, y una `/` adentro de un
+                  // slug rompe el matching de `/quests/[slug]` sin excepción.
+                  onChange={(event) => setValue("id", slugify(event.target.value), { shouldValidate: true })}
+                  placeholder="el-bazar-encantado"
                   className="rounded-md border border-white/10 bg-obsidian/60 px-3 py-2 text-sm text-parchment focus-visible:border-gold-glow/50"
                 />
+                <p className="text-xs text-parchment-muted/70">
+                  Se normaliza solo a minúsculas y guiones — así siempre queda una URL válida en /quests/[slug].
+                </p>
                 {errors.id && (
                   <p role="alert" className="text-xs text-danger">
                     {errors.id.message}
                   </p>
                 )}
+                <input type="hidden" {...register("originalId")} />
               </div>
 
               <div hidden={formLang !== "es"} className="flex flex-col gap-1.5">
@@ -470,12 +511,25 @@ export function QuestForm({ initialValues, initialValuesEn, collapsible = false,
               <div className="flex flex-col gap-1.5 border-t border-white/10 pt-5">
                 <span className="text-sm font-medium text-parchment">Imagen de portada</span>
                 <ImageUploader
-                  folder="uploads"
-                  onUploadComplete={(publicUrl) => setCoverImageUrl(publicUrl)}
+                  folder={initialValues ? `${initialValues.id}/cover` : "uploads/cover"}
+                  onUploadComplete={(publicUrl) => {
+                    setCoverImageUrl(publicUrl);
+                    // Iteración 34 — antes esta URL nunca se mandaba al
+                    // Server Action (`QuestUpsertInput` ni siquiera tenía
+                    // `media`, ver docblock de `quests.ts`); `setValue()`
+                    // la pone en el input oculto registrado abajo, que sí
+                    // viaja con el resto del `FormData` al guardar.
+                    setValue("coverImageUrl", publicUrl, { shouldDirty: true });
+                  }}
                 />
+                {/* Guía de tamaño (Hefesto/Éter, Iteración 34): pedida para que el editor no suba cualquier cosa y el Hero termine recortando mal. */}
+                <p className="text-xs text-parchment-muted/70">
+                  Recomendado: 16:9 (ej. 1920×1080px) — es la que mejor llena el Hero de la página de la Quest.
+                </p>
                 {coverImageUrl && (
                   <p className="break-all text-xs text-parchment-muted/70">{coverImageUrl}</p>
                 )}
+                <input type="hidden" {...register("coverImageUrl")} />
               </div>
 
               <div hidden={formLang !== "es"} className="flex flex-col gap-1.5 border-t border-white/10 pt-5">
@@ -507,6 +561,24 @@ export function QuestForm({ initialValues, initialValuesEn, collapsible = false,
                 />
               </div>
 
+              {/* Imagen del capítulo (Hefesto/Éter, Iteración 34) — fuera de los bloques `hidden={formLang !== ...}`: la foto es la misma en ambos idiomas, no se traduce. */}
+              <div className="flex flex-col gap-1.5">
+                <ImageUploader
+                  folder={initialValues ? `${initialValues.id}/chapters/problem` : "uploads/chapters/problem"}
+                  onUploadComplete={(publicUrl) => {
+                    setChapterImageUrls((prev) => ({ ...prev, problem: publicUrl }));
+                    setValue("chapterImageProblem", publicUrl, { shouldDirty: true });
+                  }}
+                />
+                <p className="text-xs text-parchment-muted/70">
+                  Recomendado: 4:3 o 16:9, alta resolución — se ve a pantalla completa en el Lightbox.
+                </p>
+                {chapterImageUrls.problem && (
+                  <p className="break-all text-xs text-parchment-muted/70">{chapterImageUrls.problem}</p>
+                )}
+                <input type="hidden" {...register("chapterImageProblem")} />
+              </div>
+
               <div hidden={formLang !== "es"} className="flex flex-col gap-1.5">
                 <label htmlFor="uxProcess" className="text-sm font-medium text-parchment">
                   Capítulo II — El Proceso UX
@@ -534,6 +606,24 @@ export function QuestForm({ initialValues, initialValuesEn, collapsible = false,
                   placeholder="Untranslated — falls back to the Spanish chapter"
                   className="rounded-md border border-white/10 bg-obsidian/60 px-3 py-2 text-sm text-parchment focus-visible:border-gold-glow/50"
                 />
+              </div>
+
+              {/* Imagen del capítulo (Hefesto/Éter, Iteración 34) — fuera de los bloques `hidden={formLang !== ...}`: la foto es la misma en ambos idiomas, no se traduce. */}
+              <div className="flex flex-col gap-1.5">
+                <ImageUploader
+                  folder={initialValues ? `${initialValues.id}/chapters/ux-process` : "uploads/chapters/ux-process"}
+                  onUploadComplete={(publicUrl) => {
+                    setChapterImageUrls((prev) => ({ ...prev, uxProcess: publicUrl }));
+                    setValue("chapterImageUxProcess", publicUrl, { shouldDirty: true });
+                  }}
+                />
+                <p className="text-xs text-parchment-muted/70">
+                  Recomendado: 4:3 o 16:9, alta resolución — se ve a pantalla completa en el Lightbox.
+                </p>
+                {chapterImageUrls.uxProcess && (
+                  <p className="break-all text-xs text-parchment-muted/70">{chapterImageUrls.uxProcess}</p>
+                )}
+                <input type="hidden" {...register("chapterImageUxProcess")} />
               </div>
 
               <div hidden={formLang !== "es"} className="flex flex-col gap-1.5">
@@ -565,6 +655,24 @@ export function QuestForm({ initialValues, initialValuesEn, collapsible = false,
                 />
               </div>
 
+              {/* Imagen del capítulo (Hefesto/Éter, Iteración 34) — fuera de los bloques `hidden={formLang !== ...}`: la foto es la misma en ambos idiomas, no se traduce. */}
+              <div className="flex flex-col gap-1.5">
+                <ImageUploader
+                  folder={initialValues ? `${initialValues.id}/chapters/ui-solution` : "uploads/chapters/ui-solution"}
+                  onUploadComplete={(publicUrl) => {
+                    setChapterImageUrls((prev) => ({ ...prev, uiSolution: publicUrl }));
+                    setValue("chapterImageUiSolution", publicUrl, { shouldDirty: true });
+                  }}
+                />
+                <p className="text-xs text-parchment-muted/70">
+                  Recomendado: 4:3 o 16:9, alta resolución — se ve a pantalla completa en el Lightbox.
+                </p>
+                {chapterImageUrls.uiSolution && (
+                  <p className="break-all text-xs text-parchment-muted/70">{chapterImageUrls.uiSolution}</p>
+                )}
+                <input type="hidden" {...register("chapterImageUiSolution")} />
+              </div>
+
               <div hidden={formLang !== "es"} className="flex flex-col gap-1.5">
                 <label htmlFor="impact" className="text-sm font-medium text-parchment">
                   Capítulo IV — El Impacto
@@ -592,6 +700,24 @@ export function QuestForm({ initialValues, initialValuesEn, collapsible = false,
                   placeholder="Untranslated — falls back to the Spanish chapter"
                   className="rounded-md border border-white/10 bg-obsidian/60 px-3 py-2 text-sm text-parchment focus-visible:border-gold-glow/50"
                 />
+              </div>
+
+              {/* Imagen del capítulo (Hefesto/Éter, Iteración 34) — fuera de los bloques `hidden={formLang !== ...}`: la foto es la misma en ambos idiomas, no se traduce. */}
+              <div className="flex flex-col gap-1.5">
+                <ImageUploader
+                  folder={initialValues ? `${initialValues.id}/chapters/impact` : "uploads/chapters/impact"}
+                  onUploadComplete={(publicUrl) => {
+                    setChapterImageUrls((prev) => ({ ...prev, impact: publicUrl }));
+                    setValue("chapterImageImpact", publicUrl, { shouldDirty: true });
+                  }}
+                />
+                <p className="text-xs text-parchment-muted/70">
+                  Recomendado: 4:3 o 16:9, alta resolución — se ve a pantalla completa en el Lightbox.
+                </p>
+                {chapterImageUrls.impact && (
+                  <p className="break-all text-xs text-parchment-muted/70">{chapterImageUrls.impact}</p>
+                )}
+                <input type="hidden" {...register("chapterImageImpact")} />
               </div>
 
               <Button type="submit" variant="cta" className="w-fit" disabled={savePending}>

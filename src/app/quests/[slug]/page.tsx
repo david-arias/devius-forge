@@ -9,6 +9,7 @@ import {
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { unstable_noStore as noStore } from "next/cache";
 import {
   Badge,
   Button,
@@ -51,7 +52,23 @@ export async function generateStaticParams() {
   return quests.map((quest) => ({ slug: quest.id }));
 }
 
+/**
+ * `dynamicParams = true` (Iteración 34, Apolo — fix del "slug 404")
+ * EXPLÍCITO — es el default de Next.js, pero dejarlo implícito significa
+ * confiar en que nadie lo pise sin darse cuenta en algún `next.config`/
+ * segment config futuro. Sin esto en `true`, cualquier slug que no
+ * estuviera en la lista de `generateStaticParams()` de ARRIBA (es decir,
+ * cualquier Quest publicada DESPUÉS del último build) devolvería un 404
+ * inmediato en vez de renderizarse on-demand la primera vez que alguien
+ * la visita — que es exactamente el síntoma reportado ("creo una Quest
+ * nueva con su slug y la página pública da 404").
+ */
+export const dynamicParams = true;
+
 export async function generateMetadata({ params }: QuestPageProps): Promise<Metadata> {
+  // Mismo motivo que en `QuestPage` más abajo — el `<title>`/`description`
+  // también salen de `quest.title`/`quest.summary`, que dependen del idioma.
+  noStore();
   const { slug } = await params;
   const quests = await getQuestsForView();
   const quest = quests.find((q) => q.id === slug);
@@ -104,6 +121,21 @@ const chapters = [
 ];
 
 export default async function QuestPage({ params }: QuestPageProps) {
+  // `noStore()` (Iteración 34, Minerva — fix del "i18n estancado" en el
+  // contenido de la Quest): `getQuestsForView()` YA usa `cookies()`
+  // (vía `getLocale()`/`draftMode()`), que en teoría alcanza para que
+  // Next.js excluya esta ruta del cacheo estático — pero esa llamada
+  // vive tres funciones adentro (`getQuestsForView` → `getLocale` →
+  // `cookies()`), y combinada con `generateStaticParams` de arriba, es
+  // exactamente el tipo de indirección que hace que el analizador
+  // estático de Next.js a veces no detecte la API dinámica a tiempo y
+  // sirva el HTML pre-renderado del build (siempre en español) en vez de
+  // re-renderizar por request. `noStore()` llamado ACÁ, directo en el
+  // componente de página, saca cualquier ambigüedad: esta página nunca
+  // se sirve desde una caché estática, sin importar qué tan adentro esté
+  // el `cookies()` real.
+  noStore();
+
   const { slug } = await params;
   const quests = await getQuestsForView();
   const quest = quests.find((q) => q.id === slug);

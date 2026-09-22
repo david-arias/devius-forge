@@ -23,6 +23,10 @@ import { requireAdminSession } from "./require-admin-session";
 function parseFormData(formData: FormData) {
   return {
     id: String(formData.get("id") ?? ""),
+    // Iteración 34 — ver `upsertQuest()` en `quests.mutations.ts`: sin
+    // esto, renombrar el slug de una Quest existente crea un duplicado
+    // huérfano en vez de renombrarla. String vacío en la Quest "Nueva".
+    originalId: String(formData.get("originalId") ?? ""),
     title: String(formData.get("title") ?? ""),
     summary: String(formData.get("summary") ?? ""),
     role: String(formData.get("role") ?? ""),
@@ -47,6 +51,13 @@ function parseFormData(formData: FormData) {
     uxProcessEn: String(formData.get("uxProcessEn") ?? ""),
     uiSolutionEn: String(formData.get("uiSolutionEn") ?? ""),
     impactEn: String(formData.get("impactEn") ?? ""),
+    // Iteración 34 (Hefesto/Éter, "Expansión de Media") — URLs subidas
+    // vía `ImageUploader`, ver `QuestForm.tsx`.
+    coverImageUrl: String(formData.get("coverImageUrl") ?? ""),
+    chapterImageProblem: String(formData.get("chapterImageProblem") ?? ""),
+    chapterImageUxProcess: String(formData.get("chapterImageUxProcess") ?? ""),
+    chapterImageUiSolution: String(formData.get("chapterImageUiSolution") ?? ""),
+    chapterImageImpact: String(formData.get("chapterImageImpact") ?? ""),
   };
 }
 
@@ -60,12 +71,26 @@ export async function saveQuestAction(_prevState: ActionState, formData: FormDat
     }
 
     const input = toQuestInput(parsed.data);
-    await upsertQuest(input);
+    const previousId = parsed.data.originalId || undefined;
+    await upsertQuest(input, previousId);
 
     updateTag("quests");
     revalidatePath("/admin/quests");
     revalidatePath("/sitemap.xml");
+    // El comodín con literal de segmento dinámico (Next.js) invalida TODAS
+    // las páginas `/quests/[slug]` ya generadas o cacheadas.
     revalidatePath("/quests/[slug]", "page");
+    // Defensa adicional (Iteración 34, Apolo — fix del "slug 404"): además
+    // del comodín de arriba, se revalida el path EXACTO del slug nuevo —
+    // por si la Quest se está publicando por primera vez y todavía no
+    // existía ninguna entrada de caché que el comodín pudiera invalidar.
+    revalidatePath(`/quests/${input.id}`);
+    // Si el slug cambió (rename), la URL VIEJA también se revalida — sin
+    // esto seguiría sirviendo el HTML cacheado de la Quest ya borrada
+    // hasta su próximo `revalidate` natural.
+    if (previousId && previousId !== input.id) {
+      revalidatePath(`/quests/${previousId}`);
+    }
     revalidatePath("/");
 
     return { status: "success", message: `Quest "${input.title}" guardada.` };

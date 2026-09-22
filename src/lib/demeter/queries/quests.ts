@@ -136,7 +136,12 @@ export function extractQuestEnDraft(row: SupabaseQuestRow): QuestEnDraft {
 }
 
 /**
- * Forma editable por el CMS — deja afuera `media`/`testimonial`/`chapterMedia`, todavía sin formulario (ver TODO en `QuestForm.tsx`).
+ * Forma editable por el CMS — deja afuera `testimonial` (todavía sin
+ * formulario). `media`/`chapterMedia` se sumaron en la Iteración 34
+ * (Hefesto/Éter, "Expansión de Media"): `QuestForm.tsx` sube el archivo
+ * con `ImageUploader` (Éter, Supabase Storage) y manda la URL pública
+ * resultante en un input oculto — acá sólo se tipa la forma que
+ * `toQuestInput()` arma a partir de eso.
  * Re-exportado por `quests.mutations.ts` (un `type` no genera código en runtime, así que no rompe el aislamiento cliente/servidor).
  *
  * Los 4 campos `*_en`/`caseStudyEn` (Iteración 31, i18n) son opcionales:
@@ -150,7 +155,12 @@ export type QuestUpsertInput = Pick<
   Quest,
   "id" | "title" | "summary" | "role" | "tech" | "href" | "status" | "isPublished" | "accentColor" | "imagePlaceholder"
 > & {
-  caseStudy: Pick<Quest["caseStudy"], "problem" | "uxProcess" | "uiSolution" | "impact">;
+  caseStudy: Pick<Quest["caseStudy"], "problem" | "uxProcess" | "uiSolution" | "impact"> & {
+    /** Imagen real por capítulo — Iteración 34 (Hefesto/Éter, "Expansión de Media"). Ver `QuestSchema.caseStudy.chapterMedia`. */
+    chapterMedia?: Quest["caseStudy"]["chapterMedia"];
+  };
+  /** Imagen de portada (Hero) — Iteración 34 cierra el TODO que dejaba esto fuera del formulario. */
+  media?: Quest["media"];
   titleEn?: string;
   summaryEn?: string;
   roleEn?: string;

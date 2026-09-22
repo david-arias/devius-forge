@@ -20,8 +20,29 @@ import { z } from "zod";
  * detrás de un toggle ES/EN (ver su docblock) en vez de duplicar todo el
  * formulario.
  */
+/**
+ * Formato de slug válido para `/quests/[slug]` — minúsculas, números y
+ * guiones únicamente, sin `/` (Next.js lo leería como otro segmento de
+ * ruta = 404 garantizado), sin espacios/acentos (frágiles en una URL
+ * aunque el navegador los codifique). `QuestForm.tsx` normaliza el input
+ * en vivo con `slugify()` (`lib/utils.ts`) así que en la práctica casi
+ * nunca se ve este mensaje — queda como red de seguridad si alguien
+ * pega/edita el valor evitando el `onChange` (autofill, devtools, etc.).
+ */
+const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
 export const QuestFormSchema = z.object({
-  id: z.string().min(1, "El id/slug es obligatorio (se usa en /quests/[slug])."),
+  id: z
+    .string()
+    .min(1, "El id/slug es obligatorio (se usa en /quests/[slug]).")
+    .regex(SLUG_PATTERN, "Sólo minúsculas, números y guiones (sin espacios, acentos ni \"/\") — es la URL pública."),
+  /**
+   * Id que tenía la Quest ANTES de este guardado — string vacío en la
+   * Quest "Nueva" (Iteración 34, ver `upsertQuest` en
+   * `quests.mutations.ts` para el porqué: sin esto, renombrar un slug
+   * existente deja un registro huérfano en vez de renombrarlo).
+   */
+  originalId: z.string().optional(),
   title: z.string().min(1, "El título es obligatorio."),
   summary: z.string().min(1, "El resumen es obligatorio."),
   role: z.string().min(1, "El rol es obligatorio."),
@@ -53,12 +74,34 @@ export const QuestFormSchema = z.object({
   uxProcessEn: z.string().optional(),
   uiSolutionEn: z.string().optional(),
   impactEn: z.string().optional(),
+  // ── Media (Iteración 34, Hefesto/Éter — "Expansión de Media") ──
+  // URLs públicas del bucket `quest-images` (Supabase Storage), llenadas
+  // por `ImageUploader` vía `setValue()` — ver `QuestForm.tsx`. Vacío =
+  // sigue sin foto real, cae al placeholder de gradiente/ícono de
+  // siempre (ninguno de estos campos es obligatorio).
+  coverImageUrl: z.string().optional(),
+  chapterImageProblem: z.string().optional(),
+  chapterImageUxProcess: z.string().optional(),
+  chapterImageUiSolution: z.string().optional(),
+  chapterImageImpact: z.string().optional(),
 });
 
 export type QuestFormValues = z.infer<typeof QuestFormSchema>;
 
+/** `url` (string) → `QuestMedia` (Iteración 34) — `alt` cae al título/eyebrow del capítulo, nunca queda vacío (accesibilidad). */
+function toMedia(url: string | undefined, alt: string) {
+  return url && url.trim().length > 0 ? { type: "image" as const, src: url, alt } : undefined;
+}
+
 /** Convierte los valores validados del formulario a la forma de `QuestUpsertInput` (Deméter). */
 export function toQuestInput(values: QuestFormValues) {
+  const chapterMedia = {
+    problem: toMedia(values.chapterImageProblem, `${values.title} — El Problema`),
+    uxProcess: toMedia(values.chapterImageUxProcess, `${values.title} — El Proceso UX`),
+    uiSolution: toMedia(values.chapterImageUiSolution, `${values.title} — La Solución UI`),
+    impact: toMedia(values.chapterImageImpact, `${values.title} — El Impacto`),
+  };
+
   return {
     id: values.id,
     title: values.title,
@@ -73,11 +116,13 @@ export function toQuestInput(values: QuestFormValues) {
     isPublished: values.isPublished,
     accentColor: values.accentColor,
     imagePlaceholder: { from: values.placeholderFrom, to: values.placeholderTo },
+    media: toMedia(values.coverImageUrl, values.title),
     caseStudy: {
       problem: values.problem,
       uxProcess: values.uxProcess,
       uiSolution: values.uiSolution,
       impact: values.impact,
+      chapterMedia,
     },
     titleEn: values.titleEn,
     summaryEn: values.summaryEn,

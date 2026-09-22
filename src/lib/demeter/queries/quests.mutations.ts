@@ -33,6 +33,8 @@ function toRow(input: QuestUpsertInput) {
       (value) => value && value.trim().length > 0
     );
 
+  const chapterMedia = input.caseStudy.chapterMedia;
+
   return {
     id: input.id,
     title: input.title,
@@ -44,11 +46,32 @@ function toRow(input: QuestUpsertInput) {
     is_published: input.isPublished,
     accent_color: input.accentColor,
     image_placeholder: input.imagePlaceholder,
+    // Iteración 34 (Hefesto/Éter, "Expansión de Media") — portada real,
+    // antes excluida del `QuestUpsertInput` (ver docblock de `quests.ts`).
+    // `?? null`: la columna `media` es NOT NULL-nullable pero siempre
+    // presente en la fila (`SupabaseQuestRowSchema.media` es
+    // `.nullable()` sin `.optional()`), así que un `undefined` de una
+    // Quest sin portada real tiene que mandarse explícito como `null`,
+    // nunca omitirse.
+    media: input.media ?? null,
     case_study: {
       problem: input.caseStudy.problem,
       ux_process: input.caseStudy.uxProcess,
       ui_solution: input.caseStudy.uiSolution,
       impact: input.caseStudy.impact,
+      // Mismo criterio: cada capítulo es opcional (Quest sin foto en ESE
+      // capítulo puntual, ver `QuestSchema`), pero si ninguno tiene
+      // imagen se manda `null` entero en vez de un objeto con las 4
+      // claves en `undefined` — más limpio para leer directo en Supabase.
+      chapter_media:
+        chapterMedia && Object.values(chapterMedia).some(Boolean)
+          ? {
+              problem: chapterMedia.problem,
+              ux_process: chapterMedia.uxProcess,
+              ui_solution: chapterMedia.uiSolution,
+              impact: chapterMedia.impact,
+            }
+          : null,
     },
     // Iteración 31 (Deméter, i18n) — columnas hermanas en inglés, ver `009_i18n.sql`.
     title_en: emptyToNull(input.titleEn),
@@ -70,11 +93,37 @@ function toRow(input: QuestUpsertInput) {
  * sesión (`createServerSupabaseClient`), cuyas escrituras pasan por RLS
  * como el usuario autenticado del panel (ver `001_init.sql`: sólo
  * `authenticated` puede escribir).
+ *
+ * `previousId` (Iteración 34, Apolo/Minerva — fix del "slug 404"): el
+ * `id` de la Quest ES su slug público, y el formulario lo deja editable
+ * (`QuestForm.tsx`). Como el `upsert` es `onConflict: "id"`, renombrar el
+ * slug de una Quest existente (id viejo ≠ id nuevo) NO la renombra: crea
+ * una fila NUEVA con el id nuevo y deja la fila VIEJA huérfana en la
+ * base — la URL vieja sigue sirviendo contenido stale (desde caché) y
+ * después 404 solo a medias, y la Quest queda duplicada. `previousId` es
+ * el `id` que tenía el registro ANTES de este guardado (lo manda
+ * `saveQuestAction` en un input oculto, `originalId`); si vino y es
+ * distinto del nuevo, se borra la fila vieja después de que el upsert de
+ * la nueva confirme — nunca antes (si el insert nuevo fallara, no
+ * queremos perder el registro viejo).
  */
-export async function upsertQuest(input: QuestUpsertInput): Promise<void> {
+export async function upsertQuest(input: QuestUpsertInput, previousId?: string): Promise<void> {
   const supabase = await createServerSupabaseClient();
   const { error } = await supabase.from("quests").upsert(toRow(input), { onConflict: "id" });
   if (error) throw new Error(`No se pudo guardar la quest: ${error.message}`);
+
+  if (previousId && previousId !== input.id) {
+    const { error: deleteError } = await supabase.from("quests").delete().eq("id", previousId);
+    // No se relanza: la Quest con el id NUEVO ya se guardó bien (lo que
+    // más le importa al editor); un huérfano que no se pudo limpiar es
+    // recuperable a mano y no debería tumbar el guardado que sí funcionó.
+    if (deleteError) {
+      console.error(
+        `[Deméter] upsertQuest: no se pudo borrar el registro viejo (id "${previousId}") tras renombrar el slug a "${input.id}".`,
+        deleteError
+      );
+    }
+  }
 }
 
 export async function deleteQuest(id: string): Promise<void> {
