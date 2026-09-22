@@ -1,7 +1,8 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { type ReactNode, useId } from "react";
+import { type ReactNode, useId, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { useDialogPanel } from "@/lib/hefesto/use-dialog-panel";
 import { Button } from "./Button";
 
@@ -46,8 +47,23 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const panelId = useId();
   const panelRef = useDialogPanel<HTMLDivElement>(open, onCancel);
+  // `false` en el servidor y en la hidratación, `true` ya en el cliente —
+  // así el portal nunca desincroniza el HTML del SSR.
+  const isClient = useSyncExternalStore(
+    subscribeNoop,
+    () => true,
+    () => false
+  );
 
-  return (
+  if (!isClient) return null;
+
+  // Iteración 40 (fix "modal cortado"): el diálogo se monta en un PORTAL
+  // directo en `<body>`. Antes se renderizaba dentro de la tarjeta que lo
+  // abría (`Card` de QuestForm = `overflow-hidden` + `isolate`, envuelta
+  // en el `SortableItem` de dnd-kit con `transform`): un ancestro con
+  // `transform` convierte a `position: fixed` en relativo a ESE ancestro,
+  // y el `overflow-hidden` recortaba el panel — por eso se veía cortado.
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -67,7 +83,7 @@ export function ConfirmDialog({
             aria-modal="true"
             aria-labelledby={`${panelId}-title`}
             aria-describedby={`${panelId}-desc`}
-            className="fixed left-1/2 top-1/2 z-[91] w-[min(26rem,90vw)] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-white/10 bg-obsidian-soft p-6 shadow-2xl"
+            className="fixed left-1/2 top-1/2 z-[91] max-h-[calc(100svh-2rem)] w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-obsidian-soft p-6 shadow-2xl"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
@@ -97,6 +113,11 @@ export function ConfirmDialog({
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
+}
+
+function subscribeNoop() {
+  return () => {};
 }

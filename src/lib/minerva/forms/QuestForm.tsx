@@ -780,7 +780,7 @@ export function QuestForm({ initialValues, initialValuesEn, collapsible = false,
             <span>
               Borrar también sus archivos de La Bóveda
               <span className="mt-0.5 block text-xs text-parchment-muted">
-                Portada, imágenes de capítulos y video en <code>quest-images/{initialValues.id}/</code>. Los que use otra
+                Portada, imágenes de capítulos y video en <code className="break-all">quest-images/{initialValues.id}/</code>. Los que use otra
                 Quest (p.ej. una copia duplicada) se conservan.
               </span>
             </span>
