@@ -22,6 +22,15 @@ import { type QuestEnDraft } from "@/lib/demeter/queries/quests";
 import { cn, slugify } from "@/lib/utils";
 import { QuestFormSchema, type QuestFormValues } from "./quest-form-schema";
 
+/** Campos de media del formulario (URLs) — Iteración 39. */
+type MediaField =
+  | "coverImageUrl"
+  | "heroVideoUrl"
+  | "chapterImageProblem"
+  | "chapterImageUxProcess"
+  | "chapterImageUiSolution"
+  | "chapterImageImpact";
+
 interface QuestFormProps {
   /** Valores iniciales de UNA Quest — hoy viene de `getQuests({ includeDrafts: true })` (Deméter). */
   initialValues?: Quest;
@@ -76,26 +85,11 @@ interface QuestFormProps {
  *  - Toasts de éxito/error vía `useAdminToastStore` en las 3 acciones.
  */
 export function QuestForm({ initialValues, initialValuesEn, collapsible = false, dragHandle }: QuestFormProps) {
-  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(
-    initialValues?.media?.type === "image" ? initialValues.media.src : null
-  );
-  // Imágenes por capítulo (Iteración 34, Hefesto/Éter — "Expansión de
-  // Media"): mismo patrón que `coverImageUrl` de arriba, uno por cada
-  // capítulo del "zig-zag". Sólo controlan la vista previa (nombre de
-  // archivo/URL en pantalla) — el valor que de verdad viaja al Server
-  // Action vive en el input oculto registrado por react-hook-form
-  // (`chapterImage*`, ver más abajo) vía `setValue()`.
-  const [chapterImageUrls, setChapterImageUrls] = useState<{
-    problem: string | null;
-    uxProcess: string | null;
-    uiSolution: string | null;
-    impact: string | null;
-  }>({
-    problem: initialValues?.caseStudy.chapterMedia?.problem?.src ?? null,
-    uxProcess: initialValues?.caseStudy.chapterMedia?.uxProcess?.src ?? null,
-    uiSolution: initialValues?.caseStudy.chapterMedia?.uiSolution?.src ?? null,
-    impact: initialValues?.caseStudy.chapterMedia?.impact?.src ?? null,
-  });
+  // Iteración 39 (Minerva/Hefesto — "Control de Medios"): las URLs de
+  // media ya NO viven duplicadas en `useState` (Iteración 34) — se leen
+  // directo del form con `watch()` (ver `mediaValues` más abajo), así que
+  // "Quitar imagen/video" es un solo `setValue(campo, "")` y la vista
+  // previa nunca se desincroniza del valor que de verdad se guarda.
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const isCollapsible = collapsible && Boolean(initialValues);
   const [isOpen, setIsOpen] = useState(!isCollapsible);
@@ -153,6 +147,8 @@ export function QuestForm({ initialValues, initialValuesEn, collapsible = false,
       chapterImageUxProcess: initialValues?.caseStudy.chapterMedia?.uxProcess?.src ?? "",
       chapterImageUiSolution: initialValues?.caseStudy.chapterMedia?.uiSolution?.src ?? "",
       chapterImageImpact: initialValues?.caseStudy.chapterMedia?.impact?.src ?? "",
+      // Iteración 39 (Deméter/Éter) — video del Scroll-Bound Hero.
+      heroVideoUrl: initialValues?.heroVideoUrl ?? "",
     },
   });
 
@@ -210,6 +206,25 @@ export function QuestForm({ initialValues, initialValuesEn, collapsible = false,
   const liveTitle = watch("title");
   const liveIsPublished = watch("isPublished");
   const isPending = savePending || deletePending || duplicatePending;
+
+  const mediaValues: Record<MediaField, string> = {
+    coverImageUrl: watch("coverImageUrl") ?? "",
+    heroVideoUrl: watch("heroVideoUrl") ?? "",
+    chapterImageProblem: watch("chapterImageProblem") ?? "",
+    chapterImageUxProcess: watch("chapterImageUxProcess") ?? "",
+    chapterImageUiSolution: watch("chapterImageUiSolution") ?? "",
+    chapterImageImpact: watch("chapterImageImpact") ?? "",
+  };
+
+  /**
+   * Único punto de escritura de media (Iteración 39): subir, pegar URL y
+   * quitar pasan todos por acá. `""` = "sin media" → `toQuestInput()` lo
+   * convierte en `undefined` → Deméter escribe `null` → el sitio público
+   * cae al gradiente de respaldo (`imagePlaceholder`).
+   */
+  function setMedia(field: MediaField, url: string) {
+    setValue(field, url, { shouldDirty: true });
+  }
 
   return (
     <Card className="max-w-2xl">
@@ -512,24 +527,33 @@ export function QuestForm({ initialValues, initialValuesEn, collapsible = false,
                 <span className="text-sm font-medium text-parchment">Imagen de portada</span>
                 <ImageUploader
                   folder={initialValues ? `${initialValues.id}/cover` : "uploads/cover"}
-                  onUploadComplete={(publicUrl) => {
-                    setCoverImageUrl(publicUrl);
-                    // Iteración 34 — antes esta URL nunca se mandaba al
-                    // Server Action (`QuestUpsertInput` ni siquiera tenía
-                    // `media`, ver docblock de `quests.ts`); `setValue()`
-                    // la pone en el input oculto registrado abajo, que sí
-                    // viaja con el resto del `FormData` al guardar.
-                    setValue("coverImageUrl", publicUrl, { shouldDirty: true });
-                  }}
+                  value={mediaValues.coverImageUrl}
+                  allowUrlPaste
+                  onUploadComplete={(publicUrl) => setMedia("coverImageUrl", publicUrl)}
+                  onRemove={() => setMedia("coverImageUrl", "")}
                 />
                 {/* Guía de tamaño (Hefesto/Éter, Iteración 34): pedida para que el editor no suba cualquier cosa y el Hero termine recortando mal. */}
                 <p className="text-xs text-parchment-muted/70">
-                  Recomendado: 16:9 (ej. 1920×1080px) — es la que mejor llena el Hero de la página de la Quest.
+                  Recomendado: 16:9 (ej. 1920×1080px) — es la que mejor llena el Hero de la página de la Quest. Sin imagen = gradiente de respaldo.
                 </p>
-                {coverImageUrl && (
-                  <p className="break-all text-xs text-parchment-muted/70">{coverImageUrl}</p>
-                )}
                 <input type="hidden" {...register("coverImageUrl")} />
+              </div>
+
+              {/* Video del Scroll-Bound Hero (Iteración 39, Deméter/Éter). Idioma-agnóstico, igual que las imágenes. */}
+              <div className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-parchment">Video introductorio (Scroll-Bound Hero)</span>
+                <ImageUploader
+                  mediaType="video"
+                  folder={initialValues ? `${initialValues.id}/hero-video` : "uploads/hero-video"}
+                  value={mediaValues.heroVideoUrl}
+                  allowUrlPaste
+                  onUploadComplete={(publicUrl) => setMedia("heroVideoUrl", publicUrl)}
+                  onRemove={() => setMedia("heroVideoUrl", "")}
+                />
+                <p className="text-xs text-parchment-muted/70">
+                  MP4 (H.264) o WebM, sin audio, 5–12 s, idealmente &lt; 15 MB y con keyframes densos (ffmpeg -g 1) para que el scroll lo recorra fluido. URL directa al archivo — YouTube/Vimeo no sirven. Sin video = cabecera clásica.
+                </p>
+                <input type="hidden" {...register("heroVideoUrl")} />
               </div>
 
               <div hidden={formLang !== "es"} className="flex flex-col gap-1.5 border-t border-white/10 pt-5">
@@ -565,17 +589,14 @@ export function QuestForm({ initialValues, initialValuesEn, collapsible = false,
               <div className="flex flex-col gap-1.5">
                 <ImageUploader
                   folder={initialValues ? `${initialValues.id}/chapters/problem` : "uploads/chapters/problem"}
-                  onUploadComplete={(publicUrl) => {
-                    setChapterImageUrls((prev) => ({ ...prev, problem: publicUrl }));
-                    setValue("chapterImageProblem", publicUrl, { shouldDirty: true });
-                  }}
+                  value={mediaValues.chapterImageProblem}
+                  allowUrlPaste
+                  onUploadComplete={(publicUrl) => setMedia("chapterImageProblem", publicUrl)}
+                  onRemove={() => setMedia("chapterImageProblem", "")}
                 />
                 <p className="text-xs text-parchment-muted/70">
                   Recomendado: 4:3 o 16:9, alta resolución — se ve a pantalla completa en el Lightbox.
                 </p>
-                {chapterImageUrls.problem && (
-                  <p className="break-all text-xs text-parchment-muted/70">{chapterImageUrls.problem}</p>
-                )}
                 <input type="hidden" {...register("chapterImageProblem")} />
               </div>
 
@@ -612,17 +633,14 @@ export function QuestForm({ initialValues, initialValuesEn, collapsible = false,
               <div className="flex flex-col gap-1.5">
                 <ImageUploader
                   folder={initialValues ? `${initialValues.id}/chapters/ux-process` : "uploads/chapters/ux-process"}
-                  onUploadComplete={(publicUrl) => {
-                    setChapterImageUrls((prev) => ({ ...prev, uxProcess: publicUrl }));
-                    setValue("chapterImageUxProcess", publicUrl, { shouldDirty: true });
-                  }}
+                  value={mediaValues.chapterImageUxProcess}
+                  allowUrlPaste
+                  onUploadComplete={(publicUrl) => setMedia("chapterImageUxProcess", publicUrl)}
+                  onRemove={() => setMedia("chapterImageUxProcess", "")}
                 />
                 <p className="text-xs text-parchment-muted/70">
                   Recomendado: 4:3 o 16:9, alta resolución — se ve a pantalla completa en el Lightbox.
                 </p>
-                {chapterImageUrls.uxProcess && (
-                  <p className="break-all text-xs text-parchment-muted/70">{chapterImageUrls.uxProcess}</p>
-                )}
                 <input type="hidden" {...register("chapterImageUxProcess")} />
               </div>
 
@@ -659,17 +677,14 @@ export function QuestForm({ initialValues, initialValuesEn, collapsible = false,
               <div className="flex flex-col gap-1.5">
                 <ImageUploader
                   folder={initialValues ? `${initialValues.id}/chapters/ui-solution` : "uploads/chapters/ui-solution"}
-                  onUploadComplete={(publicUrl) => {
-                    setChapterImageUrls((prev) => ({ ...prev, uiSolution: publicUrl }));
-                    setValue("chapterImageUiSolution", publicUrl, { shouldDirty: true });
-                  }}
+                  value={mediaValues.chapterImageUiSolution}
+                  allowUrlPaste
+                  onUploadComplete={(publicUrl) => setMedia("chapterImageUiSolution", publicUrl)}
+                  onRemove={() => setMedia("chapterImageUiSolution", "")}
                 />
                 <p className="text-xs text-parchment-muted/70">
                   Recomendado: 4:3 o 16:9, alta resolución — se ve a pantalla completa en el Lightbox.
                 </p>
-                {chapterImageUrls.uiSolution && (
-                  <p className="break-all text-xs text-parchment-muted/70">{chapterImageUrls.uiSolution}</p>
-                )}
                 <input type="hidden" {...register("chapterImageUiSolution")} />
               </div>
 
@@ -706,17 +721,14 @@ export function QuestForm({ initialValues, initialValuesEn, collapsible = false,
               <div className="flex flex-col gap-1.5">
                 <ImageUploader
                   folder={initialValues ? `${initialValues.id}/chapters/impact` : "uploads/chapters/impact"}
-                  onUploadComplete={(publicUrl) => {
-                    setChapterImageUrls((prev) => ({ ...prev, impact: publicUrl }));
-                    setValue("chapterImageImpact", publicUrl, { shouldDirty: true });
-                  }}
+                  value={mediaValues.chapterImageImpact}
+                  allowUrlPaste
+                  onUploadComplete={(publicUrl) => setMedia("chapterImageImpact", publicUrl)}
+                  onRemove={() => setMedia("chapterImageImpact", "")}
                 />
                 <p className="text-xs text-parchment-muted/70">
                   Recomendado: 4:3 o 16:9, alta resolución — se ve a pantalla completa en el Lightbox.
                 </p>
-                {chapterImageUrls.impact && (
-                  <p className="break-all text-xs text-parchment-muted/70">{chapterImageUrls.impact}</p>
-                )}
                 <input type="hidden" {...register("chapterImageImpact")} />
               </div>
 

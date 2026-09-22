@@ -82,6 +82,8 @@ export const SupabaseQuestRowSchema = z.object({
   accent_color: z.string(),
   image_placeholder: z.object({ from: z.string(), to: z.string() }),
   media: questMediaRowSchema.nullable(),
+  /** Iteración 39 — `010_hero_video.sql`. `.optional()`: filas leídas antes de correr la migración no traen la columna. */
+  hero_video_url: z.string().nullable().optional(),
   testimonial: z.object({ quote: z.string(), author: z.string(), role: z.string() }).nullable(),
   case_study: caseStudyRowSchema,
   /**
@@ -136,6 +138,7 @@ export function mapSupabaseQuestRow(row: SupabaseQuestRow, locale: Locale = "es"
     accentColor: row.accent_color,
     imagePlaceholder: row.image_placeholder,
     media: row.media ?? undefined,
+    heroVideoUrl: row.hero_video_url ?? undefined,
     testimonial: row.testimonial ?? undefined,
     updatedAt: row.updated_at,
     caseStudy: {

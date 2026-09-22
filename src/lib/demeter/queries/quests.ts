@@ -161,6 +161,8 @@ export type QuestUpsertInput = Pick<
   };
   /** Imagen de portada (Hero) — Iteración 34 cierra el TODO que dejaba esto fuera del formulario. */
   media?: Quest["media"];
+  /** Video del Scroll-Bound Hero — Iteración 39. `undefined` = sin video (Deméter escribe `null`). */
+  heroVideoUrl?: string;
   titleEn?: string;
   summaryEn?: string;
   roleEn?: string;

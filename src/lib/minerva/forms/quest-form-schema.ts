@@ -84,6 +84,8 @@ export const QuestFormSchema = z.object({
   chapterImageUxProcess: z.string().optional(),
   chapterImageUiSolution: z.string().optional(),
   chapterImageImpact: z.string().optional(),
+  // ── Scroll-Bound Video (Iteración 39, Deméter/Éter) — vacío = sin video. ──
+  heroVideoUrl: z.string().optional(),
 });
 
 export type QuestFormValues = z.infer<typeof QuestFormSchema>;
@@ -117,6 +119,7 @@ export function toQuestInput(values: QuestFormValues) {
     accentColor: values.accentColor,
     imagePlaceholder: { from: values.placeholderFrom, to: values.placeholderTo },
     media: toMedia(values.coverImageUrl, values.title),
+    heroVideoUrl: values.heroVideoUrl && values.heroVideoUrl.trim().length > 0 ? values.heroVideoUrl.trim() : undefined,
     caseStudy: {
       problem: values.problem,
       uxProcess: values.uxProcess,

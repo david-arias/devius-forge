@@ -104,6 +104,8 @@ export const en: Dictionary = {
     expandImageAria: (alt: string) => `Expand image: ${alt}`,
     closeImageAria: "Close expanded image",
     pendingMockup: "Mockup still pending for this chapter",
+    scrollHint: "Scroll to begin the Quest",
+    skipIntro: "Skip intro",
   },
   contactForm: {
     ariaLabel: "Contact form",

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Cinzel, Inter } from "next/font/google";
+import { Cinzel, Ubuntu } from "next/font/google";
 import "./globals.css";
 import { draftMode } from "next/headers";
 import { SiteChrome } from "@/components/hefesto/sections";
@@ -22,9 +22,24 @@ const cinzel = Cinzel({
   weight: ["400", "600", "700", "900"],
 });
 
-const inter = Inter({
-  variable: "--font-sans",
-  subsets: ["latin"],
+/**
+ * Ubuntu — Iteración 39 (Hefesto, "Tipografía Híbrida"). Reemplaza a
+ * Inter como tipografía de LECTURA (párrafos, descripciones de capítulos,
+ * botones, badges, navegación). Se aplica una sola vez en `<body>`
+ * (`font-ubuntu`) y todo lo demás la hereda; los títulos (`h1`–`h4`)
+ * NO la heredan porque `globals.css` (`@layer base`) les fuerza
+ * `var(--font-display)` (Cinzel) — así la Serif épica se conserva en
+ * Hero, títulos de Quests y títulos de capítulos sin tocar cada uno.
+ * Ubuntu no es variable en Google Fonts → los pesos van explícitos
+ * (300/400/500/700 son los únicos que existen).
+ */
+const ubuntu = Ubuntu({
+  // Nombre distinto al token de Tailwind (`--font-ubuntu`, globals.css)
+  // para no crear una referencia circular `--font-ubuntu: var(--font-ubuntu)`.
+  variable: "--font-ubuntu-google",
+  subsets: ["latin", "latin-ext"],
+  weight: ["300", "400", "500", "700"],
+  display: "swap",
 });
 
 // SITE_URL vive en `src/lib/site.ts` desde la Iteración 23 (env `NEXT_PUBLIC_SITE_URL`).
@@ -205,9 +220,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang={locale}
-      className={`${cinzel.variable} ${inter.variable} h-full scroll-smooth antialiased`}
+      className={`${cinzel.variable} ${ubuntu.variable} h-full scroll-smooth antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-obsidian text-parchment font-sans">
+      <body className="min-h-full flex flex-col bg-obsidian text-parchment font-ubuntu">
         <SupabaseRuntimeConfig url={supabaseEnv.url} anonKey={supabaseEnv.anonKey} />
         {/* Atmósfera de la Forja — fondo + grano, dominio de Hefesto (ver globals.css) */}
         <div aria-hidden className="forge-atmosphere" />

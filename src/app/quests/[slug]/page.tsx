@@ -17,6 +17,7 @@ import {
   ChapterMediaFrame,
   QuestDwellTracker,
   QuestHero,
+  QuestScrollVideoHero,
   RevealText,
   StaggerReveal,
 } from "@/components/hefesto/ui";
@@ -154,65 +155,94 @@ export default async function QuestPage({ params }: QuestPageProps) {
       {/* Logro "Erudito de la UI" (Iteración 13) — ver QuestDwellTracker.tsx */}
       <QuestDwellTracker />
       {/*
-        Cabecera — Iteración 14 (Hefesto, "La Forja Oculta"): pasó de
-        `min-h-[22rem]` a `min-h-[70vh]` (casi pantalla completa) para dar
-        más peso visual al proyecto apenas se entra a su caso de estudio.
-        `QuestHero` (Client Component, ver su propio docblock) pinta la
-        imagen/video con un parallax sutil sólo cuando `quest.media`
-        existe; si no, esta misma sección sigue cayendo al
-        `imagePlaceholder` de gradiente de siempre (estático, sin JS).
+        Iteración 39 (Deméter/Éter/Hefesto — "Scroll-Bound Video"): si la
+        Quest tiene `heroVideoUrl` (cargado desde el CMS), la cabecera
+        clásica se reemplaza por `QuestScrollVideoHero`: 300–400vh de
+        scroll que recorren el video frame a frame con un `sticky` a
+        pantalla completa, y al terminar el flujo sigue normal hacia los
+        capítulos (`#quest-chapters`). Sin video → cabecera de siempre.
       */}
-      <section
-        className="relative flex min-h-[70vh] flex-col justify-end overflow-hidden px-4 pb-12 pt-32 sm:px-8 sm:pb-16"
-        style={
-          quest.media
-            ? undefined
-            : {
-                backgroundImage: `linear-gradient(135deg, ${quest.imagePlaceholder.from}, ${quest.imagePlaceholder.to})`,
-              }
-        }
-      >
-        {quest.media && <QuestHero media={quest.media} />}
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.14),transparent_55%)]"
+      {quest.heroVideoUrl ? (
+        <QuestScrollVideoHero
+          videoUrl={quest.heroVideoUrl}
+          posterUrl={quest.media?.type === "image" ? quest.media.src : quest.media?.poster}
+          title={quest.title}
+          role={quest.role}
+          summary={quest.summary}
+          tech={quest.tech}
+          accentColor={quest.accentColor}
+          placeholder={quest.imagePlaceholder}
+          nextSectionId="quest-chapters"
+          labels={{
+            backToQuests: t.questDetail.backToQuests,
+            scrollHint: t.questDetail.scrollHint,
+            skipIntro: t.questDetail.skipIntro,
+          }}
         />
-        <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/40 to-transparent" />
-
-        <div className="relative mx-auto w-full max-w-4xl">
-          <Link
-            href="/#quests"
-            className="mb-6 inline-flex items-center gap-1.5 rounded-md text-sm text-parchment-muted transition-colors duration-150 hover:text-parchment"
+      ) : (
+        <>
+          {/*
+            Cabecera — Iteración 14 (Hefesto, "La Forja Oculta"): pasó de
+            `min-h-[22rem]` a `min-h-[70vh]` (casi pantalla completa) para dar
+            más peso visual al proyecto apenas se entra a su caso de estudio.
+            `QuestHero` (Client Component, ver su propio docblock) pinta la
+            imagen/video con un parallax sutil sólo cuando `quest.media`
+            existe; si no, esta misma sección sigue cayendo al
+            `imagePlaceholder` de gradiente de siempre (estático, sin JS).
+          */}
+          <section
+            className="relative flex min-h-[70vh] flex-col justify-end overflow-hidden px-4 pb-12 pt-32 sm:px-8 sm:pb-16"
+            style={
+              quest.media
+                ? undefined
+                : {
+                    backgroundImage: `linear-gradient(135deg, ${quest.imagePlaceholder.from}, ${quest.imagePlaceholder.to})`,
+                  }
+            }
           >
-            <ArrowLeft className="h-4 w-4" aria-hidden />
-            {t.questDetail.backToQuests}
-          </Link>
+            {quest.media && <QuestHero media={quest.media} />}
+            <div
+              aria-hidden
+              className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.14),transparent_55%)]"
+            />
+            <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/40 to-transparent" />
 
-          <p
-            className="mb-2 text-xs font-semibold uppercase tracking-[0.18em]"
-            style={{ color: quest.accentColor }}
-          >
-            {quest.role}
-          </p>
-          {/* Iteración 19: título con revelado en cascada por palabra */}
-          <RevealText
-            as="h1"
-            text={quest.title}
-            delay={0.25}
-            className="text-balance break-words font-display text-3xl leading-tight text-parchment sm:text-4xl lg:text-5xl"
-          />
-          <p className="mt-4 max-w-2xl leading-relaxed text-parchment/60">{quest.summary}</p>
+            <div className="relative mx-auto w-full max-w-4xl">
+              <Link
+                href="/#quests"
+                className="mb-6 inline-flex items-center gap-1.5 rounded-md text-sm text-parchment-muted transition-colors duration-150 hover:text-parchment"
+              >
+                <ArrowLeft className="h-4 w-4" aria-hidden />
+                {t.questDetail.backToQuests}
+              </Link>
 
-          <div className="mt-6 flex flex-wrap gap-1.5">
-            {quest.tech.map((t) => (
-              <Badge key={t}>{t}</Badge>
-            ))}
-          </div>
-        </div>
-      </section>
+              <p
+                className="mb-2 text-xs font-semibold uppercase tracking-[0.18em]"
+                style={{ color: quest.accentColor }}
+              >
+                {quest.role}
+              </p>
+              {/* Iteración 19: título con revelado en cascada por palabra */}
+              <RevealText
+                as="h1"
+                text={quest.title}
+                delay={0.25}
+                className="text-balance break-words font-display text-3xl leading-tight text-parchment sm:text-4xl lg:text-5xl"
+              />
+              <p className="mt-4 max-w-2xl leading-relaxed text-parchment/60">{quest.summary}</p>
+
+              <div className="mt-6 flex flex-wrap gap-1.5">
+                {quest.tech.map((t) => (
+                  <Badge key={t}>{t}</Badge>
+                ))}
+              </div>
+            </div>
+          </section>
+        </>
+      )}
 
       {/* Los 4 capítulos del caso de estudio — "zig-zag": imagen + texto alternando de lado, Iteración 12. `ChapterMediaFrame` (Iteración 14) agrega zoom/lightbox cuando hay imagen real. */}
-      <section className="mx-auto max-w-5xl px-4 py-16 sm:px-8 sm:py-20">
+      <section id="quest-chapters" className="mx-auto max-w-5xl scroll-mt-24 px-4 py-16 sm:px-8 sm:py-20">
         <StaggerReveal className="space-y-8 sm:space-y-10">
           {chapters.map(({ key, icon: Icon, eyebrow, title }, index) => {
             const reversed = index % 2 === 1;

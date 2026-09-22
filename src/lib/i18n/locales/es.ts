@@ -122,6 +122,10 @@ export interface Dictionary {
     expandImageAria: (alt: string) => string;
     closeImageAria: string;
     pendingMockup: string;
+    /** Iteración 39 — indicador "deslizá" del Scroll-Bound Hero (`QuestScrollVideoHero`). */
+    scrollHint: string;
+    /** Iteración 39 — atajo (teclado/lectores de pantalla) para saltar los 300–400vh del video. */
+    skipIntro: string;
   };
   contactForm: {
     ariaLabel: string;
@@ -248,6 +252,8 @@ export const es: Dictionary = {
     expandImageAria: (alt: string) => `Ampliar imagen: ${alt}`,
     closeImageAria: "Cerrar imagen ampliada",
     pendingMockup: "Mockup pendiente de subir para este capítulo",
+    scrollHint: "Desliza para iniciar la Quest",
+    skipIntro: "Saltar intro",
   },
   contactForm: {
     ariaLabel: "Formulario de contacto",

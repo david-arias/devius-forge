@@ -87,7 +87,7 @@ export function MobileMenu({ navigation }: MobileMenuProps) {
                     key={link.href}
                     href={link.href}
                     onClick={closeAndNavigate}
-                    className="rounded-md px-3 py-3 font-display text-lg text-parchment transition-colors duration-150 hover:bg-carbon-elevated"
+                    className="rounded-md px-3 py-3 font-ubuntu text-lg font-medium text-parchment transition-colors duration-150 hover:bg-carbon-elevated"
                   >
                     {link.label}
                   </a>

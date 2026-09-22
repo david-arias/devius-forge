@@ -54,6 +54,10 @@ function toRow(input: QuestUpsertInput) {
     // Quest sin portada real tiene que mandarse explícito como `null`,
     // nunca omitirse.
     media: input.media ?? null,
+    // Iteración 39 — video del Scroll-Bound Hero (`010_hero_video.sql`).
+    // `""`/`undefined` → `null`: así el botón "Quitar video" del CMS borra
+    // de verdad la referencia en la base.
+    hero_video_url: emptyToNull(input.heroVideoUrl),
     case_study: {
       problem: input.caseStudy.problem,
       ux_process: input.caseStudy.uxProcess,

@@ -58,6 +58,8 @@ function parseFormData(formData: FormData) {
     chapterImageUxProcess: String(formData.get("chapterImageUxProcess") ?? ""),
     chapterImageUiSolution: String(formData.get("chapterImageUiSolution") ?? ""),
     chapterImageImpact: String(formData.get("chapterImageImpact") ?? ""),
+    // Iteración 39 — video del Scroll-Bound Hero.
+    heroVideoUrl: String(formData.get("heroVideoUrl") ?? ""),
   };
 }
 

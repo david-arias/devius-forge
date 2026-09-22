@@ -53,7 +53,11 @@
   --color-focus-ring: var(--color-focus-ring);
 
   --font-display: var(--font-display);
-  --font-sans: var(--font-sans);
+  /* Iteración 39 (Hefesto): Ubuntu = tipografía de lectura → utilidad `font-ubuntu`.
+     `font-sans` se re-apunta a la misma familia para que ningún uso heredado
+     de `font-sans` vuelva a pedir Inter (ya no se descarga). */
+  --font-ubuntu: var(--font-ubuntu-google), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-ubuntu-google), ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {

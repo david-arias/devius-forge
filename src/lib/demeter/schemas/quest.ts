@@ -64,6 +64,15 @@ export const QuestSchema = z.object({
    */
   media: QuestMediaSchema.optional(),
   /**
+   * Video introductorio del Scroll-Bound Hero — Iteración 39 (Deméter/Éter).
+   * URL pública (bucket `quest-images`, carpeta `<quest-id>/hero-video/`, o
+   * cualquier MP4/WebM directo). Si existe, `/quests/[slug]` reemplaza la
+   * cabecera clásica por `QuestScrollVideoHero` (el scroll "friega" el
+   * video frame a frame). Opcional: sin video, la página sigue con la
+   * cabecera de siempre (imagen `media` o gradiente `imagePlaceholder`).
+   */
+  heroVideoUrl: z.string().optional(),
+  /**
    * Prueba social (MINERVA, auditoría 2026-09-15, hallazgo Bajo Impacto).
    * Cita corta + nombre + rol de quien lo dice. Opcional — sólo se
    * renderiza si está presente, nunca se inventa un testimonio placeholder.

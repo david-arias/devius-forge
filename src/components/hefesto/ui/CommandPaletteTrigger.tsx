@@ -35,7 +35,7 @@ export function CommandPaletteTrigger({ className }: CommandPaletteTriggerProps)
       <Search className="h-[1.1rem] w-[1.1rem]" aria-hidden />
       <kbd
         aria-hidden
-        className="hidden rounded border border-white/15 bg-white/5 px-1.5 py-0.5 font-sans text-[0.65rem] font-medium text-parchment-muted/80 group-hover:text-parchment md:inline-block"
+        className="hidden rounded border border-white/15 bg-white/5 px-1.5 py-0.5 font-ubuntu text-[0.65rem] font-medium text-parchment-muted/80 group-hover:text-parchment md:inline-block"
       >
         ⌘K
       </kbd>
