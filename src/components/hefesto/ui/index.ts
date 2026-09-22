@@ -3,6 +3,7 @@ export * from "./AdminSidebar";
 export * from "./ChapterMediaFrame";
 export * from "./QuestHero";
 export * from "./QuestScrollVideoHero";
+export * from "./CapacityCard";
 export * from "./AchievementsDrawerTrigger";
 export * from "./AchievementToast";
 export * from "./Badge";

@@ -1,12 +1,19 @@
-import { Backpack, Inbox, Network, ScrollText, Settings, Swords } from "lucide-react";
+import { AlertTriangle, Backpack, Database, HardDrive, Inbox, Network, ScrollText, Settings, Swords } from "lucide-react";
 import Link from "next/link";
-import { Card } from "@/components/hefesto/ui";
+import { CapacityCard, Card } from "@/components/hefesto/ui";
 import { getCharacter } from "@/lib/demeter/queries/character";
 import { getInventory } from "@/lib/demeter/queries/inventory";
 import { getQuests } from "@/lib/demeter/queries/quests";
 import { getSkillTree } from "@/lib/demeter/queries/skill-tree";
 import { getMessages } from "@/lib/demeter/queries/messages";
 import { getSettings } from "@/lib/demeter/queries/settings";
+import { getSystemMetrics } from "@/lib/demeter/queries/system-metrics";
+
+const measuredFmt = new Intl.DateTimeFormat("es-CO", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZone: "America/Bogota",
+});
 
 /**
  * `/admin` — dashboard de entrada (Apolo, Iteración 15 — auditoría
@@ -21,7 +28,7 @@ import { getSettings } from "@/lib/demeter/queries/settings";
  * hay necesidad de esperarlas en cascada, ninguna depende de otra.
  */
 export default async function AdminDashboardPage() {
-  const [quests, skillTree, inventory, character, messages, settings] = await Promise.all([
+  const [quests, skillTree, inventory, character, messages, settings, system] = await Promise.all([
     getQuests({ includeDrafts: true }),
     getSkillTree(),
     getInventory({ includeDrafts: true }),
@@ -29,6 +36,8 @@ export default async function AdminDashboardPage() {
     // Iteración 22: si `messages` todavía no existe, el panel no se cae.
     getMessages({ limit: 200 }).catch(() => null),
     getSettings(),
+    // Iteración 41 — nunca lanza (devuelve `{ ok: false, error }`), ver `system-metrics.ts`.
+    getSystemMetrics(),
   ]);
   const configuredLinks = [settings.email, settings.githubUrl, settings.linkedinUrl].filter(Boolean).length;
 
@@ -109,6 +118,66 @@ export default async function AdminDashboardPage() {
           </Link>
         ))}
       </div>
+
+      {/*
+        Iteración 41 (Minerva/Hefesto — "Capacidad de la Forja"): uso real
+        de la BD Postgres y del Storage de Supabase contra el plan Free
+        (500 MB / 1 GB). Datos de `get_system_metrics()` (011_system_metrics.sql).
+      */}
+      <section aria-labelledby="forge-capacity" className="mt-12">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h2 id="forge-capacity" className="font-display text-xl text-parchment">
+              Capacidad de la Forja
+            </h2>
+            <p className="text-sm text-parchment-muted">Uso de Supabase frente a los límites del plan gratuito.</p>
+          </div>
+          {system.ok && (
+            <p className="text-xs text-parchment-muted/80">
+              Medido: {measuredFmt.format(new Date(system.metrics.measuredAt))}
+            </p>
+          )}
+        </div>
+
+        {system.ok ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <CapacityCard
+              icon={Database}
+              label="Base de datos"
+              value={system.metrics.database.label}
+              limitLabel={system.metrics.database.limitLabel}
+              percent={system.metrics.database.percent}
+              level={system.metrics.database.level}
+              details={system.metrics.topTables.map((table) => ({ label: table.name, value: table.label }))}
+              footnote="Incluye índices y catálogos internos de Postgres — por eso nunca arranca en 0."
+            />
+            <CapacityCard
+              icon={HardDrive}
+              label="Storage (archivos)"
+              value={system.metrics.storage.label}
+              limitLabel={system.metrics.storage.limitLabel}
+              percent={system.metrics.storage.percent}
+              level={system.metrics.storage.level}
+              details={[
+                { label: "Archivos totales", value: String(system.metrics.storage.objects) },
+                ...system.metrics.buckets.map((bucket) => ({
+                  label: `${bucket.id} (${bucket.objects})`,
+                  value: bucket.label,
+                })),
+              ]}
+              footnote="Para liberar espacio, borrá archivos sin usar desde La Bóveda (/admin/media)."
+            />
+          </div>
+        ) : (
+          <div role="alert" className="flex items-start gap-3 rounded-xl border border-gold-glow/30 bg-gold-glow/5 p-4 text-sm">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-gold-glow" aria-hidden />
+            <div>
+              <p className="font-semibold text-parchment">Métricas no disponibles</p>
+              <p className="mt-1 text-parchment-muted">{system.error}</p>
+            </div>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

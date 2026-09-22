@@ -111,15 +111,47 @@ export function QuestScrollVideoHero({
     restDelta: 0.0005,
   });
 
-  // Fase 2 — textos
-  const textOpacity = useTransform(scrollYProgress, [0, TEXT_FADE_END], [1, 0]);
-  const textY = useTransform(scrollYProgress, [0, TEXT_FADE_END], [0, -50]);
-  const hintOpacity = useTransform(scrollYProgress, [0, 0.04], [1, 0]);
-  const scrimOpacity = useTransform(scrollYProgress, [0, TEXT_FADE_END + 0.03], [0.7, 0.15]);
+  // ── Iteración 41 (Hefesto — fix "los textos vuelven a aparecer") ──────
+  // Causa real: NO era el `clamp` (en Framer Motion 13 `useTransform`
+  // clampea por defecto — `interpolate(..., { clamp = true })` en
+  // motion-dom). Era la ACELERACIÓN POR HARDWARE: cuando la entrada es un
+  // `useScroll()` y la propiedad es `opacity` (también `transform`,
+  // `filter`, `clipPath`, `backgroundColor`), Framer no anima por JS: arma
+  // una animación WAAPI nativa ligada a un ScrollTimeline con
+  // `times = inputRange` y `keyframes = outputRange` (ver `use-transform.mjs`
+  // → `result.accelerate`, y `VisualElement.mjs` → `new NativeAnimation`).
+  // Si el rango de entrada NO cubre 0→1 completo (acá era `[0, 0.12]`),
+  // el navegador completa el keyframe faltante en el offset 1 con el
+  // valor BASE del elemento (opacity: 1) — así que después del 12% la
+  // opacidad volvía a subir linealmente hasta 1 al final del scroll.
+  //
+  // Fix: todo rango cubre SIEMPRE el recorrido completo [0 … 1], con el
+  // valor final repetido explícitamente (`[0, 0.12, 1] → [1, 0, 0]`).
+  // Es correcto tanto en el camino JS (clamp) como en el acelerado (WAAPI).
+  const textOpacity = useTransform(scrollYProgress, [0, TEXT_FADE_END, 1], [1, 0, 0]);
+  const textY = useTransform(scrollYProgress, [0, TEXT_FADE_END, 1], [0, -50, -50]);
+  const hintOpacity = useTransform(scrollYProgress, [0, 0.04, 1], [1, 0, 0]);
+  const scrimOpacity = useTransform(scrollYProgress, [0, TEXT_FADE_END + 0.03, 1], [0.7, 0.15, 0.15]);
   // Fase 3 — barra de progreso (aparece cuando los textos ya se fueron)
-  const barOpacity = useTransform(scrollYProgress, [TEXT_FADE_END - 0.02, TEXT_FADE_END + 0.04], [0, 1]);
-  // Fase 4 — velo de salida hacia los capítulos
-  const exitOpacity = useTransform(scrollYProgress, [0.85, 1], [0, 1]);
+  const barOpacity = useTransform(
+    scrollYProgress,
+    [0, TEXT_FADE_END - 0.02, TEXT_FADE_END + 0.04, 1],
+    [0, 0, 1, 1]
+  );
+  // Fase 4 — velo de salida hacia los capítulos (mismo bug en espejo: sin
+  // el keyframe en 0, WAAPI arrancaba el velo en opacidad 1).
+  const exitOpacity = useTransform(scrollYProgress, [0, 0.85, 1], [0, 0, 1]);
+
+  // Cinturón y tirantes: una vez desvanecidos, los textos quedan `inert`
+  // (fuera del foco de teclado y de los clics — el link "Volver" ya no
+  // es alcanzable invisible) y con `visibility: hidden`, que ninguna
+  // animación de opacidad puede revertir. Sólo cambia de estado al cruzar
+  // el umbral, no en cada frame.
+  const [textGone, setTextGone] = useState(false);
+  useMotionValueEvent(scrollYProgress, "change", (progress) => {
+    const gone = progress >= TEXT_FADE_END;
+    setTextGone((current) => (current === gone ? current : gone));
+  });
 
   // ── Descarga como Blob (seek instantáneo) ──────────────────────────────
   useEffect(() => {
@@ -241,7 +273,8 @@ export function QuestScrollVideoHero({
         {/* Fase 1 → 2: título, rol, resumen */}
         <motion.div
           style={{ opacity: scroll(textOpacity), y: scroll(textY) }}
-          className="relative z-10 mx-auto flex h-full w-full max-w-5xl flex-col justify-end px-4 pb-24 pt-32 sm:px-8 sm:pb-28"
+          inert={!reduce && textGone}
+          className={`${!reduce && textGone ? "invisible " : ""}relative z-10 mx-auto flex h-full w-full max-w-5xl flex-col justify-end px-4 pb-24 pt-32 sm:px-8 sm:pb-28`}
         >
           <Link
             href="/#quests"
