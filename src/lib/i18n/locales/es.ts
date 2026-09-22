@@ -99,6 +99,30 @@ export interface Dictionary {
     emptyTitle: string;
     emptyDescription: string;
   };
+  /**
+   * `questDetail` — Iteración 38 (Apolo, barrido de copy hardcodeada en
+   * `/quests/[slug]`): el `<h1>`/resumen/capítulos de cada Quest ya
+   * salían traducidos vía Deméter (`case_study_en`, etc.), pero el
+   * "andamiaje" fijo de la página (eyebrow/título de cada uno de los 4
+   * capítulos, "Volver a Quests", "Ver proyecto en vivo", los
+   * `aria-label` del lightbox de `ChapterMediaFrame`) estaba escrito a
+   * mano en español directo en el JSX — nunca pasaba por
+   * `getTranslations()`/`useTranslation()`, así que se quedaba en
+   * español sin importar el idioma activo.
+   */
+  questDetail: {
+    backToQuests: string;
+    liveProjectCta: string;
+    chapters: {
+      problem: { eyebrow: string; title: string };
+      uxProcess: { eyebrow: string; title: string };
+      uiSolution: { eyebrow: string; title: string };
+      impact: { eyebrow: string; title: string };
+    };
+    expandImageAria: (alt: string) => string;
+    closeImageAria: string;
+    pendingMockup: string;
+  };
   contactForm: {
     ariaLabel: string;
     nameLabel: string;
@@ -211,6 +235,19 @@ export const es: Dictionary = {
     eyebrow: "Bitácora",
     emptyTitle: "La forja está vacía",
     emptyDescription: "Los próximos casos de estudio se están templando. Cada Quest publicada aparecerá acá.",
+  },
+  questDetail: {
+    backToQuests: "Volver a Quests",
+    liveProjectCta: "Ver proyecto en vivo",
+    chapters: {
+      problem: { eyebrow: "Capítulo I", title: "El Problema" },
+      uxProcess: { eyebrow: "Capítulo II", title: "El Proceso UX" },
+      uiSolution: { eyebrow: "Capítulo III", title: "La Solución UI" },
+      impact: { eyebrow: "Capítulo IV", title: "El Impacto" },
+    },
+    expandImageAria: (alt: string) => `Ampliar imagen: ${alt}`,
+    closeImageAria: "Cerrar imagen ampliada",
+    pendingMockup: "Mockup pendiente de subir para este capítulo",
   },
   contactForm: {
     ariaLabel: "Formulario de contacto",

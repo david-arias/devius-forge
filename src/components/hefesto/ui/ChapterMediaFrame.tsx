@@ -6,6 +6,7 @@ import NextImage from "next/image";
 import { useId, useState } from "react";
 import { type Quest } from "@/lib/demeter/schemas";
 import { useDialogPanel } from "@/lib/hefesto/use-dialog-panel";
+import { useTranslation } from "@/lib/i18n/use-translation";
 import { cn } from "@/lib/utils";
 
 interface ChapterMediaFrameProps {
@@ -37,6 +38,7 @@ interface ChapterMediaFrameProps {
  * "fade" — mismo criterio que el resto del motion sensorial del sitio.
  */
 export function ChapterMediaFrame({ quest, chapterKey, className }: ChapterMediaFrameProps) {
+  const { t } = useTranslation();
   const media = quest.caseStudy.chapterMedia?.[chapterKey];
   // Iteración 36 (Hefesto — fix del "espacio negro" en capítulos de Quest):
   // antes de este fix, cuando `media` SÍ existía (la Quest tiene una URL
@@ -70,11 +72,35 @@ export function ChapterMediaFrame({ quest, chapterKey, className }: ChapterMedia
   const panelRef = useDialogPanel<HTMLDivElement>(open, () => setOpen(false));
   const prefersReducedMotion = useReducedMotion();
 
+  // Iteración 38 (Hefesto — fix DEFINITIVO del "contenedor de 0px",
+  // confirmado inspeccionando el DOM en vivo con Claude en Chrome):
+  // `frame` ya NO recibe el `className` externo (el `lg:w-5/12`/`lg:w-7/12`
+  // que `quests/[slug]/page.tsx` le pasa para el layout zig-zag). Antes lo
+  // recibía acá, PERO en el caso "zoomable" (imagen real) el valor que
+  // este componente devuelve es `<button>{frame}</button>` — el `<button>`
+  // envuelve a `frame`, así que el `<button>`, no `frame`, es el
+  // verdadero hijo flex dentro de `quests/[slug]/page.tsx`. El `<button>`
+  // no tenía NINGUNA clase de ancho/`shrink-0` propia — como flex item con
+  // `flex-basis: auto` y sin contenido en el flujo normal (el único hijo
+  // de `frame` es el `<Image fill>`, `position: absolute`, fuera del
+  // flujo), su ancho intrínseco colapsaba a ~0 (sólo el borde de 1px de
+  // `frame` se veía: 2px medidos en vivo). `frame` calculaba
+  // `width: 41.6667%` correctamente, pero un 41.6667% DE UN CONTENEDOR DE
+  // ~0px sigue siendo ~0px — de ahí el colapso total reportado ("altura
+  // 0", aunque en los hechos era el ANCHO el que colapsaba; la altura
+  // funcionaba por `items-stretch` en el flex padre, que si actúa sobre
+  // el hijo flex directo — el `<button>` — estirándolo en el eje
+  // transversal).
+  //
+  // Fix: `className` (el ancho responsivo) se aplica ahora al elemento
+  // que REALMENTE es el hijo flex en cada rama — el `<div>` del caso no
+  // zoomable, o el `<button>` del caso zoomable — nunca a `frame`, que
+  // pasa a ser sólo un `w-full h-*` interno que llena a su contenedor
+  // inmediato.
   const frame = (
     <div
       className={cn(
-        "relative w-full h-56 shrink-0 overflow-hidden rounded-2xl border border-white/10 sm:h-72 lg:h-full lg:min-h-[18rem]",
-        className
+        "relative h-56 w-full shrink-0 overflow-hidden rounded-2xl border border-white/10 sm:h-72 lg:h-full lg:min-h-[18rem]"
       )}
       style={
         showPlaceholder
@@ -113,14 +139,18 @@ export function ChapterMediaFrame({ quest, chapterKey, className }: ChapterMedia
             aria-hidden
             strokeWidth={1.25}
           />
-          <span className="sr-only">Mockup pendiente de subir para este capítulo</span>
+          <span className="sr-only">{t.questDetail.pendingMockup}</span>
         </div>
       )}
     </div>
   );
 
   if (!isZoomableImage) {
-    return frame;
+    return (
+      <div className={cn("shrink-0 lg:h-full", className)}>
+        {frame}
+      </div>
+    );
   }
 
   return (
@@ -129,8 +159,8 @@ export function ChapterMediaFrame({ quest, chapterKey, className }: ChapterMedia
         type="button"
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
-        aria-label={`Ampliar imagen: ${media.alt}`}
-        className="cursor-zoom-in rounded-2xl focus-visible:outline-offset-4"
+        aria-label={t.questDetail.expandImageAria(media.alt)}
+        className={cn("block shrink-0 cursor-zoom-in rounded-2xl text-left focus-visible:outline-offset-4 lg:h-full", className)}
       >
         {frame}
       </button>
@@ -162,7 +192,7 @@ export function ChapterMediaFrame({ quest, chapterKey, className }: ChapterMedia
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                aria-label="Cerrar imagen ampliada"
+                aria-label={t.questDetail.closeImageAria}
                 className="absolute -top-11 right-0 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-parchment transition-colors duration-150 hover:bg-white/20"
               >
                 <X className="h-5 w-5" aria-hidden />

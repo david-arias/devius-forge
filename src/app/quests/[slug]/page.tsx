@@ -23,6 +23,7 @@ import {
 import { cn } from "@/lib/utils";
 import { getQuestsForView } from "@/lib/minerva";
 import { getQuests } from "@/lib/demeter/queries/quests";
+import { getTranslations } from "@/lib/i18n/get-translations";
 import { SITE_URL } from "@/lib/site";
 
 interface QuestPageProps {
@@ -95,32 +96,22 @@ export async function generateMetadata({ params }: QuestPageProps): Promise<Meta
   };
 }
 
-const chapters = [
-  {
-    key: "problem" as const,
-    icon: Map,
-    eyebrow: "Capítulo I",
-    title: "El Problema",
-  },
-  {
-    key: "uxProcess" as const,
-    icon: Lightbulb,
-    eyebrow: "Capítulo II",
-    title: "El Proceso UX",
-  },
-  {
-    key: "uiSolution" as const,
-    icon: Sparkles,
-    eyebrow: "Capítulo III",
-    title: "La Solución UI",
-  },
-  {
-    key: "impact" as const,
-    icon: Trophy,
-    eyebrow: "Capítulo IV",
-    title: "El Impacto",
-  },
-];
+// Iteración 38 (Apolo — fix del "barrido de botones sin traducir"):
+// `eyebrow`/`title` ya NO están escritos a mano acá — antes esta
+// constante vivía a nivel de módulo (fuera del componente, evaluada una
+// sola vez) con los 4 textos en español fijo, así que ningún cambio de
+// idioma los tocaba nunca. Ahora es una función que recibe el
+// diccionario ya resuelto por `getTranslations()` (Server Component,
+// mismo mecanismo que el resto del sitio) y arma el array por request,
+// en el idioma correcto.
+function buildChapters(t: Awaited<ReturnType<typeof getTranslations>>) {
+  return [
+    { key: "problem" as const, icon: Map, ...t.questDetail.chapters.problem },
+    { key: "uxProcess" as const, icon: Lightbulb, ...t.questDetail.chapters.uxProcess },
+    { key: "uiSolution" as const, icon: Sparkles, ...t.questDetail.chapters.uiSolution },
+    { key: "impact" as const, icon: Trophy, ...t.questDetail.chapters.impact },
+  ];
+}
 
 export default async function QuestPage({ params }: QuestPageProps) {
   // `await connection()` (Iteración 36, Minerva — fix DEFINITIVO del
@@ -149,12 +140,14 @@ export default async function QuestPage({ params }: QuestPageProps) {
   await connection();
 
   const { slug } = await params;
-  const quests = await getQuestsForView();
+  const [quests, t] = await Promise.all([getQuestsForView(), getTranslations()]);
   const quest = quests.find((q) => q.id === slug);
 
   if (!quest) {
     notFound();
   }
+
+  const chapters = buildChapters(t);
 
   return (
     <main className="relative flex-1">
@@ -192,7 +185,7 @@ export default async function QuestPage({ params }: QuestPageProps) {
             className="mb-6 inline-flex items-center gap-1.5 rounded-md text-sm text-parchment-muted transition-colors duration-150 hover:text-parchment"
           >
             <ArrowLeft className="h-4 w-4" aria-hidden />
-            Volver a Quests
+            {t.questDetail.backToQuests}
           </Link>
 
           <p
@@ -268,7 +261,7 @@ export default async function QuestPage({ params }: QuestPageProps) {
           <div className="mt-10 flex justify-center">
             <a href={quest.href} target="_blank" rel="noreferrer">
               <Button variant="cta" className="gap-2 px-6 py-2.5">
-                Ver proyecto en vivo
+                {t.questDetail.liveProjectCta}
                 <ExternalLink className="h-4 w-4" aria-hidden />
               </Button>
             </a>

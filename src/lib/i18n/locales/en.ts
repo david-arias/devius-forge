@@ -92,6 +92,19 @@ export const en: Dictionary = {
     emptyTitle: "The forge is empty",
     emptyDescription: "The next case studies are being tempered. Every published Quest will show up here.",
   },
+  questDetail: {
+    backToQuests: "Back to Quests",
+    liveProjectCta: "View live project",
+    chapters: {
+      problem: { eyebrow: "Chapter I", title: "The Problem" },
+      uxProcess: { eyebrow: "Chapter II", title: "The UX Process" },
+      uiSolution: { eyebrow: "Chapter III", title: "The UI Solution" },
+      impact: { eyebrow: "Chapter IV", title: "The Impact" },
+    },
+    expandImageAria: (alt: string) => `Expand image: ${alt}`,
+    closeImageAria: "Close expanded image",
+    pendingMockup: "Mockup still pending for this chapter",
+  },
   contactForm: {
     ariaLabel: "Contact form",
     nameLabel: "Name",
