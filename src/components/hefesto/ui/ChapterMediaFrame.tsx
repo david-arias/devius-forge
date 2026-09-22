@@ -73,7 +73,7 @@ export function ChapterMediaFrame({ quest, chapterKey, className }: ChapterMedia
   const frame = (
     <div
       className={cn(
-        "relative h-56 shrink-0 overflow-hidden rounded-2xl border border-white/10 sm:h-72 lg:h-full lg:min-h-[18rem]",
+        "relative w-full h-56 shrink-0 overflow-hidden rounded-2xl border border-white/10 sm:h-72 lg:h-full lg:min-h-[18rem]",
         className
       )}
       style={
