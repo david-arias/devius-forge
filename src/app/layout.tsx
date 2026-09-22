@@ -11,7 +11,7 @@ import { readSupabaseEnv } from "@/lib/supabase/env";
 import { Telemetry } from "@/components/poseidon/Telemetry";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getTranslations } from "@/lib/i18n/get-translations";
-import { unstable_noStore as noStore } from "next/cache";
+import { connection } from "next/server";
 
 /** Poseidón, Iteración 24: la telemetría de Vercel sólo existe en builds de producción. */
 const TELEMETRY_ENABLED = process.env.NODE_ENV === "production";
@@ -108,17 +108,25 @@ export const metadata: Metadata = {
  * ya lo desactiva automáticamente (`scroll-behavior: auto !important`).
  */
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  // `noStore()` (Iteración 35, Minerva — fix definitivo del "idioma
-  // estancado"): este `RootLayout` envuelve TODAS las rutas del sitio, y
-  // ya lee `getLocale()`/`getQuestsForView()` (que internamente usan
-  // `cookies()`) — en teoría alcanza para que Next.js excluya todo el
-  // árbol del cacheo estático, pero la Iteración 34 ya demostró que esa
-  // detección automática es frágil cuando la llamada real a `cookies()`
-  // queda varias funciones adentro (ahí se resolvió sólo para
-  // `/quests/[slug]`, no acá). Puesto ACÁ, en la raíz, el fix cubre TODO
-  // el sitio de una — Home, Navbar, Footer, Command Palette — de una sola
-  // vez, en vez de tener que repetir `noStore()` página por página.
-  noStore();
+  // `await connection()` (Iteración 36, Minerva — fix DEFINITIVO del
+  // "idioma estancado"): la Iteración 35 puso `unstable_noStore()` acá
+  // pensando que forzaba render dinámico para todo el árbol — pero en
+  // Next.js 16 (modelo "Dynamic I/O"), `unstable_noStore()` es un NOOP
+  // durante la fase de prerender (`node_modules/next/dist/server/web/
+  // spec-extension/unstable-no-store.js`: `case 'prerender': ... //
+  // unstable_noStore() is a noop in Dynamic I/O. return;`). Resultado:
+  // en build, Next igual prerenderizaba este layout como si fuera
+  // estático (con `cookies()` resolviendo al valor default "es"), y esa
+  // versión congelada es la que Vercel servía siempre, sin importar la
+  // cookie `devius-locale` del visitante — de ahí el idioma "pegado".
+  // `connection()` (`next/server`, el reemplazo oficial de
+  // `unstable_noStore` a partir de Next 15+) NO es un noop en esa misma
+  // fase: literalmente corta el prerender ahí ("prerendering stops
+  // here", docs de Next) y obliga a que TODO lo que sigue — incluida
+  // `getLocale()`/`getQuestsForView()` más abajo — corra en cada
+  // request real. Puesto acá, en la raíz, cubre TODO el sitio de una vez
+  // (Home, Navbar, Footer, Command Palette, y por herencia `/quests/[slug]`).
+  await connection();
 
   // Iteración 29 (Apolo): la Paleta de Comandos (`CommandPalette.tsx`,
   // montada más abajo vía `SiteChrome`) necesita buscar entre las Quests

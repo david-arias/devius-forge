@@ -9,7 +9,7 @@ import {
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { unstable_noStore as noStore } from "next/cache";
+import { connection } from "next/server";
 import {
   Badge,
   Button,
@@ -68,7 +68,9 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: QuestPageProps): Promise<Metadata> {
   // Mismo motivo que en `QuestPage` más abajo — el `<title>`/`description`
   // también salen de `quest.title`/`quest.summary`, que dependen del idioma.
-  noStore();
+  // Iteración 36: `noStore()` cambiado por `connection()` — ver el
+  // docblock largo en `QuestPage` de abajo.
+  await connection();
   const { slug } = await params;
   const quests = await getQuestsForView();
   const quest = quests.find((q) => q.id === slug);
@@ -121,20 +123,30 @@ const chapters = [
 ];
 
 export default async function QuestPage({ params }: QuestPageProps) {
-  // `noStore()` (Iteración 34, Minerva — fix del "i18n estancado" en el
-  // contenido de la Quest): `getQuestsForView()` YA usa `cookies()`
-  // (vía `getLocale()`/`draftMode()`), que en teoría alcanza para que
-  // Next.js excluya esta ruta del cacheo estático — pero esa llamada
-  // vive tres funciones adentro (`getQuestsForView` → `getLocale` →
-  // `cookies()`), y combinada con `generateStaticParams` de arriba, es
-  // exactamente el tipo de indirección que hace que el analizador
-  // estático de Next.js a veces no detecte la API dinámica a tiempo y
-  // sirva el HTML pre-renderado del build (siempre en español) en vez de
-  // re-renderizar por request. `noStore()` llamado ACÁ, directo en el
-  // componente de página, saca cualquier ambigüedad: esta página nunca
-  // se sirve desde una caché estática, sin importar qué tan adentro esté
-  // el `cookies()` real.
-  noStore();
+  // `await connection()` (Iteración 36, Minerva — fix DEFINITIVO del
+  // "i18n estancado", reemplaza el `noStore()` de la Iteración 34): la
+  // Iteración 34 asumía que `unstable_noStore()` forzaba esta ruta a
+  // renderizar por request — cierto hasta Next 14, pero FALSO en Next 16
+  // (modelo "Dynamic I/O"): `unstable_noStore()` es un noop durante la
+  // fase de prerender (confirmado leyendo
+  // `node_modules/next/dist/server/web/spec-extension/unstable-no-store.js`
+  // — el `switch` sobre `workUnitStore.type` tiene un `case 'prerender':
+  // ... return;` explícito con el comentario "unstable_noStore() is a
+  // noop in Dynamic I/O"). Esta ruta además tiene `generateStaticParams`
+  // arriba, así que en build Next SÍ la prerenderiza — y como
+  // `noStore()` no hacía nada en esa fase, quedaba congelada con el
+  // idioma default ("es") para siempre, sin importar la cookie
+  // `devius-locale` del visitante.
+  //
+  // `connection()` (`next/server`) es el reemplazo oficial de
+  // `unstable_noStore` y SÍ corta el prerender ("prerendering stops
+  // here" — docs de Next): todo lo que sigue, incluido `getQuestsForView()`
+  // (que resuelve `getLocale()` vía `cookies()`), corre en cada request
+  // real, nunca en build. `generateStaticParams` sigue generando las
+  // rutas conocidas al build (para el listado de slugs/SEO), pero el HTML
+  // real de cada visita se recalcula siempre — el objetivo original de
+  // la Iteración 34, ahora con la API que de verdad lo cumple.
+  await connection();
 
   const { slug } = await params;
   const quests = await getQuestsForView();

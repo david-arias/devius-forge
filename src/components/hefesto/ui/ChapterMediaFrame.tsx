@@ -38,7 +38,33 @@ interface ChapterMediaFrameProps {
  */
 export function ChapterMediaFrame({ quest, chapterKey, className }: ChapterMediaFrameProps) {
   const media = quest.caseStudy.chapterMedia?.[chapterKey];
-  const isZoomableImage = media?.type === "image";
+  // Iteración 36 (Hefesto — fix del "espacio negro" en capítulos de Quest):
+  // antes de este fix, cuando `media` SÍ existía (la Quest tiene una URL
+  // guardada para este capítulo) pero la imagen fallaba al cargar en el
+  // navegador — dominio no declarado en `images.remotePatterns`
+  // (`next.config.ts`), archivo borrado del bucket, URL vieja de un
+  // storage distinto, CORS, lo que sea — `next/image` deja el <img> roto
+  // y SIN el gradiente de placeholder, porque ese gradiente sólo se
+  // aplicaba cuando `media` era `undefined` (ver el `style` de `frame`
+  // más abajo). El contenedor quedaba con `background` sin definir → se
+  // veía negro/vacío heredando el fondo oscuro del sitio (`bg-obsidian`),
+  // exactamente el síntoma reportado, mientras el texto del capítulo (que
+  // no depende de que la imagen cargue) rendereaba perfecto al lado.
+  //
+  // Fix: `failedSrc` (guarda el `src` que falló, ver más abajo) +
+  // `onError` en el `<Image>` — apenas el navegador dispara el evento de
+  // error de carga, se trata exactamente igual que "no hay imagen":
+  // mismo gradiente + ícono de placeholder que ya existía para capítulos
+  // sin subir. Nunca queda un contenedor sin `background`.
+  // Sin `useEffect`: en vez de un booleano + efecto que lo resetee a mano
+  // cuando cambia `media.src` (dispara "setState síncrono en un efecto",
+  // cascading renders — regla `react-hooks/set-state-in-effect`), se
+  // guarda directamente CUÁL src falló. Comparar contra `media.src` en
+  // cada render ya da el reset "gratis": si `chapterKey`/`quest` cambia
+  // (otro src), la comparación deja de matchear sola, sin efecto.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const showPlaceholder = !media || (media.type === "image" && media.src === failedSrc);
+  const isZoomableImage = media?.type === "image" && media.src !== failedSrc;
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const panelRef = useDialogPanel<HTMLDivElement>(open, () => setOpen(false));
@@ -51,14 +77,14 @@ export function ChapterMediaFrame({ quest, chapterKey, className }: ChapterMedia
         className
       )}
       style={
-        media
-          ? undefined
-          : {
+        showPlaceholder
+          ? {
               backgroundImage: `linear-gradient(150deg, color-mix(in srgb, ${quest.accentColor} 16%, #0a0a0f), #0a0a0f 72%)`,
             }
+          : undefined
       }
     >
-      {media ? (
+      {!showPlaceholder && media ? (
         media.type === "video" ? (
           <video
             className="h-full w-full object-cover"
@@ -77,6 +103,7 @@ export function ChapterMediaFrame({ quest, chapterKey, className }: ChapterMedia
             fill
             sizes="(min-width: 1024px) 40vw, 100vw"
             className="object-cover"
+            onError={() => setFailedSrc(media.src)}
           />
         )
       ) : (
