@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, Backpack, Inbox, LayoutDashboard, LogOut, Menu, Network, ScrollText, Settings, Swords, X } from "lucide-react";
+import { Activity, Backpack, Inbox, LayoutDashboard, LogOut, Menu, Network, ScrollText, Settings, Swords, Vault, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useId, useState } from "react";
@@ -15,6 +15,8 @@ const ADMIN_LINKS = [
   { href: "/admin/skills", label: "Skill Tree", icon: Network },
   { href: "/admin/inventory", label: "Inventario", icon: Backpack },
   { href: "/admin/quests", label: "Quests", icon: Swords },
+  // Iteración 40 ("Control Total") — Gestor de Archivos del bucket `quest-images`.
+  { href: "/admin/media", label: "La Bóveda", icon: Vault },
   // Iteración 22 — separadas visualmente del contenido del portafolio.
   { href: "/admin/messages", label: "Buzón", icon: Inbox, group: "sistema" },
   { href: "/admin/analytics", label: "Telemetría", icon: Activity, group: "sistema" },

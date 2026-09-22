@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Trash2 } from "lucide-react";
 import { type BaseSyntheticEvent, type ReactNode, useActionState, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { ImageUploader } from "@/components/eter/ImageUploader";
@@ -91,6 +91,9 @@ export function QuestForm({ initialValues, initialValuesEn, collapsible = false,
   // "Quitar imagen/video" es un solo `setValue(campo, "")` y la vista
   // previa nunca se desincroniza del valor que de verdad se guarda.
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  // Iteración 40 ("Control Total") — checkbox del modal de borrado:
+  // también vaciar `quest-images/<id>/` (ver `deleteQuestAction`).
+  const [purgeMedia, setPurgeMedia] = useState(false);
   const isCollapsible = collapsible && Boolean(initialValues);
   const [isOpen, setIsOpen] = useState(!isCollapsible);
   // Iteración 31 (Minerva/Hefesto, i18n) — toggle ES/EN: decide qué set de
@@ -197,6 +200,7 @@ export function QuestForm({ initialValues, initialValuesEn, collapsible = false,
     setConfirmDeleteOpen(false);
     const fd = new FormData();
     fd.set("id", initialValues.id);
+    if (purgeMedia) fd.set("purgeMedia", "on");
     deleteFormAction(fd);
   }
 
@@ -270,6 +274,19 @@ export function QuestForm({ initialValues, initialValuesEn, collapsible = false,
                 `/quests/[slug]`); la Quest "Nueva" (sin `initialValues`)
                 no la tiene todavía. */}
             <PreviewLink slug={`/quests/${initialValues.id}`} />
+            {/* Iteración 40 (Hefesto, "Control Total"): borrado a la vista
+                — antes sólo vivía dentro del menú ⋮ y pasaba desapercibido.
+                Nunca borra directo: abre el mismo `ConfirmDialog`. */}
+            <button
+              type="button"
+              onClick={() => setConfirmDeleteOpen(true)}
+              disabled={isPending}
+              aria-label={`Eliminar Quest "${initialValues.title}"`}
+              title="Eliminar Quest"
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-danger/30 text-danger/90 transition-colors duration-150 hover:border-danger/60 hover:bg-danger/10 hover:text-danger disabled:opacity-50"
+            >
+              <Trash2 className="h-4 w-4" aria-hidden />
+            </button>
             <EntityActionsMenu
               entityLabel={`Quest "${initialValues.title}"`}
               onDuplicate={handleDuplicate}
@@ -744,11 +761,31 @@ export function QuestForm({ initialValues, initialValuesEn, collapsible = false,
         <ConfirmDialog
           open={confirmDeleteOpen}
           title={`¿Eliminar "${initialValues.title}"?`}
-          description="Esta acción no se puede deshacer — la Quest se borra de la base de datos y desaparece del sitio público (si estaba publicada)."
+          description="Esta acción es IRREVERSIBLE — la Quest se borra de la base de datos, su página pública pasa a 404 y desaparece del sitemap y del feed."
+          confirmLabel="Eliminar Quest"
           pending={deletePending}
           onConfirm={handleConfirmDelete}
-          onCancel={() => setConfirmDeleteOpen(false)}
-        />
+          onCancel={() => {
+            setConfirmDeleteOpen(false);
+            setPurgeMedia(false);
+          }}
+        >
+          <label className="mt-4 flex items-start gap-2.5 rounded-md border border-white/10 bg-obsidian/60 p-3 text-sm text-parchment">
+            <input
+              type="checkbox"
+              checked={purgeMedia}
+              onChange={(event) => setPurgeMedia(event.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-obsidian/60 accent-danger"
+            />
+            <span>
+              Borrar también sus archivos de La Bóveda
+              <span className="mt-0.5 block text-xs text-parchment-muted">
+                Portada, imágenes de capítulos y video en <code>quest-images/{initialValues.id}/</code>. Los que use otra
+                Quest (p.ej. una copia duplicada) se conservan.
+              </span>
+            </span>
+          </label>
+        </ConfirmDialog>
       )}
     </Card>
   );

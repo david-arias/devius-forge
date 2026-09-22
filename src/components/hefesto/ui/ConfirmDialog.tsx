@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useId } from "react";
+import { type ReactNode, useId } from "react";
 import { useDialogPanel } from "@/lib/hefesto/use-dialog-panel";
 import { Button } from "./Button";
 
@@ -13,6 +13,12 @@ interface ConfirmDialogProps {
   pending?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  /**
+   * Contenido extra entre la descripción y los botones — Iteración 40
+   * (checkbox "borrar también sus archivos" en Quests, aviso "En uso por…"
+   * en la Bóveda). Opcional: los usos existentes no cambian.
+   */
+  children?: ReactNode;
 }
 
 /**
@@ -36,6 +42,7 @@ export function ConfirmDialog({
   pending = false,
   onConfirm,
   onCancel,
+  children,
 }: ConfirmDialogProps) {
   const panelId = useId();
   const panelRef = useDialogPanel<HTMLDivElement>(open, onCancel);
@@ -72,6 +79,7 @@ export function ConfirmDialog({
             <p id={`${panelId}-desc`} className="mt-2 text-sm text-parchment-muted">
               {description}
             </p>
+            {children}
             <div className="mt-6 flex justify-end gap-3">
               <Button type="button" variant="ghost" onClick={onCancel} disabled={pending}>
                 Cancelar
@@ -81,7 +89,7 @@ export function ConfirmDialog({
                 variant="primary"
                 onClick={onConfirm}
                 disabled={pending}
-                className="bg-danger text-parchment shadow-none hover:bg-danger/90 hover:shadow-[0_0_18px_-6px_rgba(220,38,38,0.6)]"
+                className="bg-danger font-semibold text-obsidian shadow-none hover:bg-danger/90 hover:shadow-[0_0_18px_-6px_rgba(220,38,38,0.6)]"
               >
                 {pending ? "Eliminando…" : confirmLabel}
               </Button>

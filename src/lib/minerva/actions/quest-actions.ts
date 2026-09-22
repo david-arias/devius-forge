@@ -2,6 +2,7 @@
 
 import { revalidatePath, updateTag } from "next/cache";
 import { bulkUpdateQuestOrder, deleteQuest, duplicateQuest, upsertQuest } from "@/lib/demeter/queries/quests.mutations";
+import { deleteStorageFolder } from "@/lib/demeter/queries/storage";
 import { QuestFormSchema, toQuestInput } from "@/lib/minerva/forms/quest-form-schema";
 import { type ActionState, toErrorState } from "./action-state";
 import { requireAdminSession } from "./require-admin-session";
@@ -110,12 +111,35 @@ export async function deleteQuestAction(_prevState: ActionState, formData: FormD
 
     await deleteQuest(id);
 
+    // Iteración 40 ("Control Total") — opcional, marcado en el modal de
+    // confirmación: borra también `quest-images/<id>/**` (portada,
+    // capítulos, video del hero). Va DESPUÉS de borrar la fila: si esto
+    // falla, la Quest ya no existe y los archivos quedan huérfanos pero
+    // recuperables desde /admin/media — nunca al revés (Quest viva con
+    // imágenes rotas).
+    let purgeNote = "";
+    if (formData.get("purgeMedia") === "on") {
+      try {
+        const removed = await deleteStorageFolder(id);
+        purgeNote = removed > 0 ? ` Se borraron ${removed} archivo(s) de la Bóveda.` : "";
+      } catch (purgeError) {
+        console.error(`[Minerva] deleteQuestAction: no se pudo vaciar quest-images/${id}/`, purgeError);
+        purgeNote = " (Sus archivos no se pudieron borrar — limpialos desde La Bóveda.)";
+      }
+    }
+
     updateTag("quests");
     revalidatePath("/admin/quests");
+    revalidatePath("/admin/media");
     revalidatePath("/sitemap.xml");
+    revalidatePath("/feed.xml");
+    // La página pública de ESA Quest tiene que dejar de servirse ya (404),
+    // no cuando expire su caché.
+    revalidatePath(`/quests/${id}`);
+    revalidatePath("/quests/[slug]", "page");
     revalidatePath("/");
 
-    return { status: "success", message: "Quest eliminada." };
+    return { status: "success", message: `Quest eliminada.${purgeNote}` };
   } catch (err) {
     return toErrorState(err, "No se pudo eliminar la quest.");
   }

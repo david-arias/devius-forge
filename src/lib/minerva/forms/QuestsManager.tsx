@@ -56,6 +56,17 @@ interface QuestsManagerProps {
  */
 export function QuestsManager({ quests: initialQuests, enDrafts }: QuestsManagerProps) {
   const [quests, setQuests] = useState(initialQuests);
+  // Iteración 40 (fix "no puedo eliminar Quests"): `useState(initialQuests)`
+  // sólo lee la prop en el PRIMER render — tras borrar/duplicar, el
+  // Server Action revalida y el servidor manda la lista nueva, pero la
+  // UI seguía mostrando la vieja (la Quest borrada "no se iba" hasta
+  // recargar). Patrón oficial de React para resincronizar estado con una
+  // prop, sin useEffect: guardar la prop anterior y compararla en render.
+  const [prevInitialQuests, setPrevInitialQuests] = useState(initialQuests);
+  if (initialQuests !== prevInitialQuests) {
+    setPrevInitialQuests(initialQuests);
+    setQuests(initialQuests);
+  }
   const [query, setQuery] = useState("");
   const [, startTransition] = useTransition();
   const pushToast = useAdminToastStore((state) => state.push);

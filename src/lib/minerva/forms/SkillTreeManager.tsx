@@ -42,6 +42,14 @@ interface SkillTreeManagerProps {
  */
 export function SkillTreeManager({ nodes: initialNodes, enDrafts }: SkillTreeManagerProps) {
   const [nodes, setNodes] = useState(initialNodes);
+  // Iteración 40 — mismo fix que `QuestsManager`: resincroniza con la prop
+  // cuando el servidor revalida tras borrar/duplicar (sin esto el ítem
+  // borrado seguía en pantalla hasta recargar).
+  const [prevInitialNodes, setPrevInitialNodes] = useState(initialNodes);
+  if (initialNodes !== prevInitialNodes) {
+    setPrevInitialNodes(initialNodes);
+    setNodes(initialNodes);
+  }
   const [, startTransition] = useTransition();
   const pushToast = useAdminToastStore((state) => state.push);
 

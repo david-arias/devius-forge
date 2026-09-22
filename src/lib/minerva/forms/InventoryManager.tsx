@@ -36,6 +36,14 @@ interface InventoryManagerProps {
  */
 export function InventoryManager({ items: initialItems }: InventoryManagerProps) {
   const [items, setItems] = useState(initialItems);
+  // Iteración 40 — mismo fix que `QuestsManager`: resincroniza con la prop
+  // cuando el servidor revalida tras borrar/duplicar (sin esto el ítem
+  // borrado seguía en pantalla hasta recargar).
+  const [prevInitialItems, setPrevInitialItems] = useState(initialItems);
+  if (initialItems !== prevInitialItems) {
+    setPrevInitialItems(initialItems);
+    setItems(initialItems);
+  }
   const [query, setQuery] = useState("");
   const [, startTransition] = useTransition();
   const pushToast = useAdminToastStore((state) => state.push);
