@@ -11,6 +11,7 @@ import { readSupabaseEnv } from "@/lib/supabase/env";
 import { Telemetry } from "@/components/poseidon/Telemetry";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getTranslations } from "@/lib/i18n/get-translations";
+import { unstable_noStore as noStore } from "next/cache";
 
 /** Poseidón, Iteración 24: la telemetría de Vercel sólo existe en builds de producción. */
 const TELEMETRY_ENABLED = process.env.NODE_ENV === "production";
@@ -107,6 +108,18 @@ export const metadata: Metadata = {
  * ya lo desactiva automáticamente (`scroll-behavior: auto !important`).
  */
 export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // `noStore()` (Iteración 35, Minerva — fix definitivo del "idioma
+  // estancado"): este `RootLayout` envuelve TODAS las rutas del sitio, y
+  // ya lee `getLocale()`/`getQuestsForView()` (que internamente usan
+  // `cookies()`) — en teoría alcanza para que Next.js excluya todo el
+  // árbol del cacheo estático, pero la Iteración 34 ya demostró que esa
+  // detección automática es frágil cuando la llamada real a `cookies()`
+  // queda varias funciones adentro (ahí se resolvió sólo para
+  // `/quests/[slug]`, no acá). Puesto ACÁ, en la raíz, el fix cubre TODO
+  // el sitio de una — Home, Navbar, Footer, Command Palette — de una sola
+  // vez, en vez de tener que repetir `noStore()` página por página.
+  noStore();
+
   // Iteración 29 (Apolo): la Paleta de Comandos (`CommandPalette.tsx`,
   // montada más abajo vía `SiteChrome`) necesita buscar entre las Quests
   // publicadas desde CUALQUIER ruta del sitio, no sólo `/` — por eso se

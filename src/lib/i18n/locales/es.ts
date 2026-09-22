@@ -47,6 +47,8 @@ export interface Dictionary {
     tagline: string;
     formHeading: string;
     backToTop: string;
+    /** Créditos + copyright al pie — Iteración 35 (Apolo, barrido de hardcoded strings): antes vivía escrito a mano en español dentro de `Footer.tsx`. `{year}` se reemplaza por el año actual. */
+    credits: (year: number) => string;
   };
   emptyState: {
     genericTitle: string;
@@ -159,6 +161,7 @@ export const es: Dictionary = {
     tagline: "¿Un producto que necesita diseño y código en la misma mano? Contame la idea — la forja está encendida.",
     formHeading: "Enviar un pergamino",
     backToTop: "Volver arriba ↑",
+    credits: (year: number) => `© ${year} Devius — forjado con Next.js, Tailwind CSS y Framer Motion.`,
   },
   emptyState: {
     genericTitle: "La forja está vacía",

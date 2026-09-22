@@ -41,6 +41,7 @@ export const en: Dictionary = {
     tagline: "A product that needs design and code from the same hand? Tell me the idea — the forge is lit.",
     formHeading: "Send a scroll",
     backToTop: "Back to top ↑",
+    credits: (year: number) => `© ${year} Devius — forged with Next.js, Tailwind CSS and Framer Motion.`,
   },
   emptyState: {
     genericTitle: "The forge is empty",

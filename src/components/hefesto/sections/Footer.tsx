@@ -105,7 +105,8 @@ export function Footer({ navigation, t }: FooterProps) {
       {/* Firma gigante + créditos */}
       <div className="relative mx-auto max-w-6xl px-4 sm:px-8">
         <div className="flex flex-col items-start justify-between gap-2 border-t border-white/10 py-6 text-xs text-parchment-muted/75 sm:flex-row sm:items-center">
-          <p>© {year} Devius — forjado con Next.js, Tailwind CSS y Framer Motion.</p>
+          {/* Iteración 35 (Apolo, barrido de hardcoded strings): antes era texto fijo en español, siempre, sin importar el idioma activo. */}
+          <p>{t.credits(year)}</p>
           <div className="flex items-center gap-4">
             {/* Iteración 30 (Hades/Hefesto) — Eco/Premium, ver `print-mode-store.ts`. */}
             <PrintModeToggle className="print:hidden" />
