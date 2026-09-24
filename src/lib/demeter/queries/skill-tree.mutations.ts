@@ -91,8 +91,17 @@ export async function bulkUpdateSkillTreeOrder(order: { id: string; order: numbe
   if (order.length === 0) return;
 
   const supabase = await createServerSupabaseClient();
-  const rows = order.map(({ id, order: sortOrder }) => ({ id, sort_order: sortOrder }));
-
-  const { error } = await supabase.from("skill_tree").upsert(rows, { onConflict: "id" });
-  if (error) throw new Error(`No se pudo actualizar el orden del skill tree: ${error.message}`);
+  // Iteración 42 (fix "null value in column … violates not-null
+  // constraint"): antes era un `upsert` con sólo `{ id, sort_order }`.
+  // Postgres arma primero la fila de INSERT y valida los NOT NULL
+  // (`label`, `title`, …) ANTES de detectar el conflicto por `id`, así que
+  // el reordenamiento fallaba aunque la fila ya existiera. Un `update`
+  // por fila sólo toca `sort_order` y nunca intenta insertar.
+  const results = await Promise.all(
+    order.map(({ id, order: sortOrder }) =>
+      supabase.from("skill_tree").update({ sort_order: sortOrder }).eq("id", id)
+    )
+  );
+  const failed = results.find((result) => result.error);
+  if (failed?.error) throw new Error(`No se pudo actualizar el orden del skill tree: ${failed.error.message}`);
 }
