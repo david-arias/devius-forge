@@ -17,12 +17,13 @@ import {
   ChapterMediaFrame,
   QuestDwellTracker,
   QuestHero,
+  QuestNavigation,
   QuestScrollVideoHero,
   RevealText,
   StaggerReveal,
 } from "@/components/hefesto/ui";
 import { cn } from "@/lib/utils";
-import { getQuestsForView } from "@/lib/minerva";
+import { getAdjacentQuestsForView, getQuestsForView } from "@/lib/minerva";
 import { getQuests } from "@/lib/demeter/queries/quests";
 import { getTranslations } from "@/lib/i18n/get-translations";
 import { SITE_URL } from "@/lib/site";
@@ -141,7 +142,13 @@ export default async function QuestPage({ params }: QuestPageProps) {
   await connection();
 
   const { slug } = await params;
-  const [quests, t] = await Promise.all([getQuestsForView(), getTranslations()]);
+  // Iteración 42: `getAdjacentQuestsForView()` lee la misma caché de
+  // Deméter (`unstable_cache`, tag "quests") — no suma otro fetch a Supabase.
+  const [quests, t, adjacent] = await Promise.all([
+    getQuestsForView(),
+    getTranslations(),
+    getAdjacentQuestsForView(slug),
+  ]);
   const quest = quests.find((q) => q.id === slug);
 
   if (!quest) {
@@ -250,8 +257,14 @@ export default async function QuestPage({ params }: QuestPageProps) {
             return (
               <div
                 key={key}
+                // Iteración 42: `lg:items-center` (antes `lg:items-stretch`) —
+                // imagen y texto centrados en el eje vertical, simétricos,
+                // sin huecos irregulares. Va en `lg:` y no en `md:` porque
+                // el zig-zag recién pasa a fila en `lg` (`lg:flex-row`):
+                // en `md` sigue en columna y `items-center` ahí encogería
+                // el ancho de la imagen/tarjeta en vez de centrar en vertical.
                 className={cn(
-                  "flex flex-col gap-4 lg:flex-row lg:items-stretch lg:gap-6",
+                  "flex flex-col gap-4 lg:flex-row lg:items-center lg:gap-6",
                   reversed && "lg:flex-row-reverse"
                 )}
               >
@@ -298,6 +311,9 @@ export default async function QuestPage({ params }: QuestPageProps) {
           </div>
         )}
       </section>
+
+      {/* Iteración 42 (Deméter + Hefesto) — Anterior / Siguiente Quest, al pie de todos los capítulos. */}
+      <QuestNavigation previous={adjacent.previous} next={adjacent.next} labels={t.questDetail.navigation} />
     </main>
   );
 }

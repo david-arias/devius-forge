@@ -126,6 +126,12 @@ export interface Dictionary {
     scrollHint: string;
     /** Iteración 39 — atajo (teclado/lectores de pantalla) para saltar los 300–400vh del video. */
     skipIntro: string;
+    /** Iteración 42 — `QuestNavigation` (anterior/siguiente al pie del caso de estudio). */
+    navigation: {
+      ariaLabel: string;
+      previous: string;
+      next: string;
+    };
   };
   contactForm: {
     ariaLabel: string;
@@ -254,6 +260,11 @@ export const es: Dictionary = {
     pendingMockup: "Mockup pendiente de subir para este capítulo",
     scrollHint: "Desliza para iniciar la Quest",
     skipIntro: "Saltar intro",
+    navigation: {
+      ariaLabel: "Más Quests",
+      previous: "Quest anterior",
+      next: "Siguiente Quest",
+    },
   },
   contactForm: {
     ariaLabel: "Formulario de contacto",

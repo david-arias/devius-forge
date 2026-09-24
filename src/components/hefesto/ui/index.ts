@@ -2,6 +2,7 @@ export * from "./AchievementsDrawer";
 export * from "./AdminSidebar";
 export * from "./ChapterMediaFrame";
 export * from "./QuestHero";
+export * from "./QuestNavigation";
 export * from "./QuestScrollVideoHero";
 export * from "./CapacityCard";
 export * from "./AchievementsDrawerTrigger";

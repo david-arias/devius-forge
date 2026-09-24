@@ -173,3 +173,61 @@ export type QuestUpsertInput = Pick<
     impact?: string;
   };
 };
+
+/**
+ * Quests vecinas de un caso de estudio — Deméter, Iteración 42
+ * ("Navegación Anterior/Siguiente"). Lo consume `QuestNavigation`
+ * (Hefesto) al pie de `/quests/[slug]`.
+ */
+export interface AdjacentQuests {
+  previous: Quest | null;
+  next: Quest | null;
+}
+
+/**
+ * Lógica pura (sin I/O) — separada de `getAdjacentQuests()` para poder
+ * testearla sin Supabase. `quests` DEBE venir ya filtrada a publicadas y
+ * ordenada por `sort_order` (lo que ya devuelve `getQuests()`).
+ *
+ * Reglas:
+ *  - Slug que no está en la lista (p.ej. un borrador abierto en Draft
+ *    Mode) → sin vecinas: nunca se enlaza a un borrador desde el sitio
+ *    público.
+ *  - 1 sola Quest → sin vecinas.
+ *  - 2 Quests → sin bucle (si no, "anterior" y "siguiente" serían la
+ *    misma tarjeta repetida).
+ *  - 3+ Quests → bucle circular: la última enlaza a la primera y
+ *    viceversa, así el visitante nunca llega a un "callejón sin salida".
+ */
+export function findAdjacentQuests(quests: Quest[], currentSlug: string): AdjacentQuests {
+  const index = quests.findIndex((quest) => quest.id === currentSlug);
+  if (index === -1 || quests.length < 2) return { previous: null, next: null };
+
+  if (quests.length === 2) {
+    return {
+      previous: index > 0 ? quests[index - 1] : null,
+      next: index < quests.length - 1 ? quests[index + 1] : null,
+    };
+  }
+
+  const total = quests.length;
+  return {
+    previous: quests[(index - 1 + total) % total],
+    next: quests[(index + 1) % total],
+  };
+}
+
+/**
+ * `getAdjacentQuests(currentSlug)` — lee la MISMA entrada de caché que
+ * `getQuests()` (`unstable_cache`, tag `"quests"`), así que no agrega un
+ * fetch extra a Supabase. Siempre sólo publicadas (`isPublished === true`),
+ * en el orden del CMS (`sort_order`, el que se ajusta con Drag & Drop en
+ * `/admin/quests`).
+ */
+export async function getAdjacentQuests(
+  currentSlug: string,
+  options?: { locale?: Locale }
+): Promise<AdjacentQuests> {
+  const published = await getQuests({ locale: options?.locale });
+  return findAdjacentQuests(published, currentSlug);
+}

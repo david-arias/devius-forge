@@ -15,7 +15,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { DragHandle, SortableItem } from "@/components/hefesto/ui";
 import { updateSkillTreeOrderAction } from "@/lib/minerva/actions/skill-actions";
 import { useAdminToastStore } from "@/lib/minerva/admin-toast-store";
@@ -31,14 +31,18 @@ interface SkillTreeManagerProps {
 }
 
 /**
- * SkillTreeManager — Iteración 17 ("Escalabilidad del CMS"). A
- * diferencia de `QuestsManager`/`InventoryManager`, el pedido de Hefesto
- * (Layout de Acordeón + buscador) sólo nombra explícitamente "Quests e
- * Inventario" — el Skill Tree se queda con su `SkillsForm` siempre
- * expandido, sólo gana la capacidad de reordenar por Drag & Drop
- * (pedida por Minerva para las 3 secciones por igual). Mismo motor
- * `@dnd-kit` y misma lógica de reordenamiento optimista que
- * `QuestsManager.tsx` — ver ahí el detalle.
+ * SkillTreeManager — Iteración 17 ("Escalabilidad del CMS"), extendido
+ * en la Iteración 42 (Hefesto & Minerva, "Acordeón en Skill Tree"):
+ *
+ *  1. **Acordeón** — cada nodo existente se pinta con `SkillsForm
+ *     collapsible`: colapsado por defecto, sólo el título en la cabecera;
+ *     al expandir aparece el formulario de edición (mismo patrón que
+ *     `QuestsManager`/`QuestForm`).
+ *  2. **Drag & Drop** — sin cambios (`@dnd-kit`, reordenamiento optimista).
+ *  3. **Flechas Arriba/Abajo** (bonus) — mueven el nodo UNA posición y
+ *     persisten el nuevo `sort_order` con el MISMO Server Action que el
+ *     Drag & Drop (`updateSkillTreeOrderAction`). Más precisas que
+ *     arrastrar en una lista larga y 100% accesibles por teclado.
  */
 export function SkillTreeManager({ nodes: initialNodes, enDrafts }: SkillTreeManagerProps) {
   const [nodes, setNodes] = useState(initialNodes);
@@ -58,17 +62,23 @@ export function SkillTreeManager({ nodes: initialNodes, enDrafts }: SkillTreeMan
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
+  // Tras mover con flecha, React reubica el nodo en el DOM y el botón
+  // pierde el foco — se lo devolvemos para poder pulsar varias veces
+  // seguidas sin volver a tabular (y si llegó al extremo, al botón opuesto).
+  const pendingFocus = useRef<{ id: string; direction: "up" | "down" } | null>(null);
+  useEffect(() => {
+    const target = pendingFocus.current;
+    if (!target) return;
+    pendingFocus.current = null;
+    const preferred = document.querySelector<HTMLButtonElement>(`[data-move="${target.id}-${target.direction}"]`);
+    const fallback = document.querySelector<HTMLButtonElement>(
+      `[data-move="${target.id}-${target.direction === "up" ? "down" : "up"}"]`
+    );
+    (preferred && !preferred.disabled ? preferred : fallback)?.focus();
+  }, [nodes]);
 
-    const oldIndex = nodes.findIndex((node) => node.id === active.id);
-    const newIndex = nodes.findIndex((node) => node.id === over.id);
-    if (oldIndex === -1 || newIndex === -1) return;
-
-    const reordered = arrayMove(nodes, oldIndex, newIndex);
+  function persistOrder(reordered: SkillNode[]) {
     setNodes(reordered);
-
     const order = reordered.map((node, index) => ({ id: node.id, order: index }));
     startTransition(() => {
       void updateSkillTreeOrderAction(order).then((result) => {
@@ -77,16 +87,38 @@ export function SkillTreeManager({ nodes: initialNodes, enDrafts }: SkillTreeMan
     });
   }
 
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = nodes.findIndex((node) => node.id === active.id);
+    const newIndex = nodes.findIndex((node) => node.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    persistOrder(arrayMove(nodes, oldIndex, newIndex));
+  }
+
+  function moveNode(index: number, direction: "up" | "down") {
+    const target = direction === "up" ? index - 1 : index + 1;
+    if (target < 0 || target >= nodes.length) return;
+    pendingFocus.current = { id: nodes[index].id, direction };
+    persistOrder(arrayMove(nodes, index, target));
+  }
+
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={nodes.map((node) => node.id)} strategy={verticalListSortingStrategy}>
-        <div className="flex flex-col gap-8">
-          {nodes.map((node) => (
+        <div className="flex flex-col gap-3">
+          {nodes.map((node, index) => (
             <SortableItem key={node.id} id={node.id}>
               {({ attributes, listeners }) => (
                 <SkillsForm
                   initialValues={node}
                   initialValuesEn={enDrafts[node.id]}
+                  collapsible
+                  position={{ index: index + 1, total: nodes.length }}
+                  onMoveUp={index > 0 ? () => moveNode(index, "up") : undefined}
+                  onMoveDown={index < nodes.length - 1 ? () => moveNode(index, "down") : undefined}
                   dragHandle={<DragHandle attributes={attributes} listeners={listeners} label={`nodo "${node.label}"`} />}
                 />
               )}

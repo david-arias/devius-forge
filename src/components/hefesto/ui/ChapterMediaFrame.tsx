@@ -97,10 +97,15 @@ export function ChapterMediaFrame({ quest, chapterKey, className }: ChapterMedia
   // zoomable, o el `<button>` del caso zoomable — nunca a `frame`, que
   // pasa a ser sólo un `w-full h-*` interno que llena a su contenedor
   // inmediato.
+  // Iteración 42 (centrado vertical del zig-zag): la fila ahora usa
+  // `lg:items-center` en vez de `lg:items-stretch`, así que `lg:h-full`
+  // ya no tenía una altura de referencia (el padre crece con el contenido)
+  // — se reemplaza por una altura fija en escritorio (`lg:h-80`) para que
+  // todas las imágenes midan lo mismo y queden centradas frente al texto.
   const frame = (
     <div
       className={cn(
-        "relative h-56 w-full shrink-0 overflow-hidden rounded-2xl border border-white/10 sm:h-72 lg:h-full lg:min-h-[18rem]"
+        "relative h-56 w-full shrink-0 overflow-hidden rounded-2xl border border-white/10 sm:h-72 lg:h-80"
       )}
       style={
         showPlaceholder
@@ -147,7 +152,7 @@ export function ChapterMediaFrame({ quest, chapterKey, className }: ChapterMedia
 
   if (!isZoomableImage) {
     return (
-      <div className={cn("shrink-0 lg:h-full", className)}>
+      <div className={cn("shrink-0", className)}>
         {frame}
       </div>
     );
@@ -160,7 +165,7 @@ export function ChapterMediaFrame({ quest, chapterKey, className }: ChapterMedia
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
         aria-label={t.questDetail.expandImageAria(media.alt)}
-        className={cn("block shrink-0 cursor-zoom-in rounded-2xl text-left focus-visible:outline-offset-4 lg:h-full", className)}
+        className={cn("block shrink-0 cursor-zoom-in rounded-2xl text-left focus-visible:outline-offset-4", className)}
       >
         {frame}
       </button>

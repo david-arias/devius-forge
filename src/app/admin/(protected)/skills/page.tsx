@@ -5,10 +5,10 @@ import { SkillTreeManager } from "@/lib/minerva/forms/SkillTreeManager";
 /**
  * `/admin/skills` — Minerva, Iteración 14, extendido en la 17
  * ("Escalabilidad del CMS") con reordenamiento Drag & Drop
- * (`SkillTreeManager`). Sin acordeón ni buscador a propósito — el pedido
- * de Hefesto para esta iteración sólo nombró Quests e Inventario para
- * esa parte de la UI (ver el comentario en `SkillTreeManager.tsx`). El
- * nodo "Nuevo" queda fuera del manager, siempre visible al final.
+ * (`SkillTreeManager`). Iteración 42: los nodos existentes pasan a
+ * acordeón (colapsados por defecto) con flechas Arriba/Abajo para
+ * reordenar — ver `SkillTreeManager.tsx`. El nodo "Nuevo" queda fuera
+ * del manager, siempre expandido al final.
  *
  * Iteración 32 (i18n, "Absoluto"): además de `getSkillTree()` (español),
  * se lee `getSkillTreeEnDrafts()` — mismo `unstable_cache` de fondo, sin

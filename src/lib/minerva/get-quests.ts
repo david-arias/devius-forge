@@ -1,5 +1,5 @@
 import { draftMode } from "next/headers";
-import { getQuests as fetchQuests } from "@/lib/demeter/queries/quests";
+import { getAdjacentQuests, getQuests as fetchQuests } from "@/lib/demeter/queries/quests";
 import { getLocale } from "@/lib/i18n/get-locale";
 
 /**
@@ -24,4 +24,14 @@ export async function getQuestsForView() {
   // (SSR real, sin parpadeo de contenido en español).
   const locale = await getLocale();
   return fetchQuests({ ...(isEnabled ? { includeDrafts: true } : {}), locale });
+}
+
+/**
+ * Iteración 42 — Quests vecinas (anterior/siguiente) ya en el idioma del
+ * visitante. A diferencia de `getQuestsForView()`, IGNORA el Draft Mode a
+ * propósito: la navegación pública nunca debe enlazar a un borrador.
+ */
+export async function getAdjacentQuestsForView(currentSlug: string) {
+  const locale = await getLocale();
+  return getAdjacentQuests(currentSlug, { locale });
 }

@@ -106,6 +106,11 @@ export const en: Dictionary = {
     pendingMockup: "Mockup still pending for this chapter",
     scrollHint: "Scroll to begin the Quest",
     skipIntro: "Skip intro",
+    navigation: {
+      ariaLabel: "More Quests",
+      previous: "Previous Quest",
+      next: "Next Quest",
+    },
   },
   contactForm: {
     ariaLabel: "Contact form",
